@@ -28,3 +28,23 @@ def createnetwork(ch_officer_ids, ch_company_numbers, save_json_path, save_csvs_
                                     save_json_path=save_json_path,
                                     save_csvs_path=save_csvs_path, save_xlsx_path=save_xlsx_path, save_neo4j=save_neo4j,
                                     overwrite_neo4j=overwrite_neo4j)
+
+
+@mithril.command()
+@click.option("--load_path", "-lp", prompt="path to the save location.")
+def loadjsoncreategraph(load_path, overwrite_neo4j):
+    mithril_functions.loadjsoncreategraph(load_path=load_path, overwrite_neo4j=overwrite_neo4j)
+
+
+@mithril.command()
+@click.option("--save_path", "-sp", prompt="path to the save location.")
+@click.option("--load_path", "-lp", prompt="path to the saved json location.")
+def loadjsonsavecsvs(load_path, save_path):
+    mithril_functions.loadjsonsavecsvs(load_path=load_path, save_path=save_path)
+
+
+@mithril.command()
+@click.option("--save_path", "-sp", prompt="path to the save location.")
+@click.option("--load_path", "-lp", prompt="path to the saved json location.")
+def loadjsonsavexlsx(load_path, save_path):
+    mithril_functions.loadjsonsavexlsx(load_path=load_path, save_path=save_path)
