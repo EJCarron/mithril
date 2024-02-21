@@ -12,6 +12,19 @@ def mithril():
               help="Can be found in the url of the person\'s Companies House profile.")
 @click.option("--ch_company_numbers", "-chcn", multiple=True, default=[], required=False,
               help="Can be found in the url of the company\'s Companies House profile.")
-def createnetwork(ch_officer_ids, ch_company_numbers):
-    mithril_functions.createnetwork(ch_officer_ids=ch_officer_ids, ch_company_numbers=ch_company_numbers)
-    
+@click.option("--save_json_path", "-sjp", default="",
+              help="Path to the json save location, will not save if left blank")
+@click.option("--save_csvs_path", "-scp", default="", help="Path to the directory where you want to save your csvs,"
+                                                           "directory must already exist. Will not save if left blank")
+@click.option("--save_xlsx_path", "-sxp", default="",
+              help="Path to the xlsx save location, will not save if left blank")
+@click.option("--save_neo4j", "-sgdb", default=True, help="Bool for for whether to save the network as a graph DB."
+                                                          "Defaults to True.")
+@click.option("--overwrite_neo4j", "-own", default=False, help="Bool, set to True if you want to clear graph db "
+                                                               "contents before writing new network")
+def createnetwork(ch_officer_ids, ch_company_numbers, save_json_path, save_csvs_path,
+                  save_xlsx_path, save_neo4j, overwrite_neo4j):
+    mithril_functions.createnetwork(ch_officer_ids=ch_officer_ids, ch_company_numbers=ch_company_numbers,
+                                    save_json_path=save_json_path,
+                                    save_csvs_path=save_csvs_path, save_xlsx_path=save_xlsx_path, save_neo4j=save_neo4j,
+                                    overwrite_neo4j=overwrite_neo4j)

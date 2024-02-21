@@ -18,6 +18,14 @@ class Node(GraphObject):
     def node_id(self):
         return 'need to implement node_id property'
 
-
     def render_unique_label(self):
         return 'need to implement render unique label'
+
+    def render_create_clause(self):
+        parameters_string = self.render_parameters_string()
+
+        clause_string = '''
+        ({name}:{label} {{{parameters}}})
+        '''.format(name=self.unique_label, label=self.node_type, parameters=parameters_string)
+
+        return clause_string

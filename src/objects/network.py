@@ -3,6 +3,7 @@ import sys
 from .graph_objects.nodes import node_factory
 from .graph_objects.relationships import relationship_factory
 from .graph_objects import expand
+import pandas as pd
 
 
 class Network:
@@ -143,3 +144,81 @@ class Network:
 
         self.set_nodes(new_nodes)
         self.set_relationships(new_relationships)
+
+    def to_dataframes(self):
+        df_dict = {'ch_officers': pd.DataFrame([o.to_flat_dict() for o in self.ch_officers.values()]).drop(
+            columns=['items', 'links_self']),
+            'ch_companies': pd.DataFrame(c.to_flat_dict() for c in self.ch_companies.values()),
+            'ch_appointments': pd.DataFrame([a.to_flat_dict() for a in self.ch_appointments]),
+        }
+        return df_dict
+
+    def save_csvs(self, directory_path):
+        dfs = self.to_dataframes()
+
+        for attr, df in dfs.items():
+            path = directory_path + '/{attr}.csv'.format(attr=attr)
+            df.to_csv(path, index=False)
+
+    def to_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__,
+                          sort_keys=True, indent=4)
+
+    def save_json(self, path):
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(self, f, default=lambda o: o.__dict__,
+                      sort_keys=True, ensure_ascii=False)
+
+    def save_xlsx(self, path):
+
+        writer = pd.ExcelWriter(path, engine='xlsxwriter')
+        dfs = self.to_dataframes()
+
+        for sheet, df in dfs.items():
+            df.to_excel(writer, sheet_name=sheet, index=False)
+
+        writer.close()
+
+    def render_create_cypher(self):
+
+        node_cyphers = self.get_node_cyphers()
+
+        nodes_string = ''
+
+        for i in range(len(node_cyphers)):
+            if i > 0:
+                nodes_string += ', '
+
+            nodes_string += '{node}'.format(node=node_cyphers[i])
+
+        cypher_string = '''
+        CREATE {nodes}
+        '''.format(nodes=nodes_string)
+
+        cypher_string += self.get_relationship_cypher()
+
+        return cypher_string
+
+    @classmethod
+    def load_json(cls, path):
+        with open(path) as f:
+            data = json.load(f)
+
+        return cls(relationships=[relationship_factory.relationship_dict[relationship['relationship_type']]
+                                  (**relationship) for relationship in data.get('relationships', [])],
+                   nodes={node_id: node_factory.node_dict[node['node_type']](**node) for node_id, node in
+                          data.get('nodes', {}).items()}
+                   )
+
+    def get_node_cyphers(self):
+        node_cyphers = []
+        for node in self.nodes.values():
+            clause = node.render_create_clause()
+            node_cyphers.append(clause)
+        return node_cyphers
+
+    def get_relationship_cypher(self):
+        cypher = ''
+        for relationship in self.relationships:
+            cypher += '\n {clause}'.format(clause=relationship.render_create_clause())
+        return cypher
