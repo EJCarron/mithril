@@ -23,7 +23,7 @@ def expand_ch_company(ch_company, existing_nodes, existing_relationships):
         if ch_officer_id in existing_nodes.keys():
             ch_officer = existing_nodes[ch_officer_id]
         else:
-            ch_officer = node_factory.ch_officer.init_from_id(ch_officer_id, 100)
+            ch_officer = node_factory.ch_officer.init_from_id(ch_officer_id)
 
         item = ch_officer.get_item_from_company_number(ch_company.company_number)
 

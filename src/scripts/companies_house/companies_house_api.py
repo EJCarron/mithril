@@ -4,8 +4,6 @@ import requests
 import json
 from .. import helpers
 
-base_url = 'https://api.company-information.service.gov.uk/'
-
 requests_counter = 0
 
 
@@ -21,13 +19,11 @@ def requests_check():
         requests_counter += 1
 
 
-def get_officer(officer_id, appointments_limit):
+def get_officer(officer_id):
     url = 'https://api.company-information.service.gov.uk/officers/{officer_id}/appointments'.format(
         officer_id=officer_id)
 
-    return get_with_paging(url=url,
-                           appointments_limit=appointments_limit,
-                           )
+    return get_with_paging(url=url)
 
 
 # Create class that acts as a countdown
@@ -53,11 +49,12 @@ def countdown(h, m, s):
     print("Bzzzt! The countdown is at zero seconds!")
 
 
-def get_company_officer_ids(company_number, appointments_limit):
-    url = base_url + '/company/{company_number}/officers'.format(
+def get_company_officer_ids(company_number):
+    config = helpers.get_config()
+    url = config.companies_house_api_base_url + '/company/{company_number}/officers'.format(
         company_number=company_number)
     print(url)
-    result = get_with_paging(url=url, appointments_limit=appointments_limit)
+    result = get_with_paging(url=url)
     if result is None:
         return None
 
@@ -75,7 +72,7 @@ def get_company_officer_ids(company_number, appointments_limit):
 def get_company(company_number):
     config = helpers.get_config()
 
-    url = base_url + '/company/{companyNumber}'.format(companyNumber=company_number)
+    url = config.companies_house_api_base_url + '/company/{companyNumber}'.format(companyNumber=company_number)
     # print(url)
     response = requests.get(url=url, headers=config.header)
     # print(response.status_code)
@@ -89,7 +86,7 @@ def get_company(company_number):
     return result
 
 
-def get_with_paging(url, appointments_limit):
+def get_with_paging(url):
     print('getting with Paging')
     config = helpers.get_config()
     items_per_page = 35
@@ -123,7 +120,7 @@ def get_with_paging(url, appointments_limit):
 
         total_pages = int(result['total_results'] / items_per_page)
 
-        if appointments_limit != -1 and result['total_results'] >= appointments_limit:
+        if config.appointments_limit != -1 and result['total_results'] >= config.appointments_limit:
 
             if result['kind'] == 'officer-list':
                 print('LIMIT BREACHED company {cn} has {num} officers'.format(cn=result['links']['self'].split('/')[1],

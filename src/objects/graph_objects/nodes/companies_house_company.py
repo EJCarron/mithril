@@ -34,4 +34,4 @@ class CompaniesHouseCompany(Node):
         return cls.from_api_result(raw_result)
 
     def get_officer_ids(self):
-        return companies_house_api.get_company_officer_ids(self.company_number, 100)
+        return companies_house_api.get_company_officer_ids(self.company_number)

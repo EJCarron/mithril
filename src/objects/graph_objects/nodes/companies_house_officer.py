@@ -17,9 +17,9 @@ class CompaniesHouseOfficer(Node):
         return self.officer_id
 
     @classmethod
-    def init_from_id(cls, ch_officer_id, appointments_limit):
+    def init_from_id(cls, ch_officer_id):
         print('Pulling data for {0} from Companies House API'.format(ch_officer_id))
-        raw_result = companies_house_api.get_officer(officer_id=ch_officer_id, appointments_limit=appointments_limit)
+        raw_result = companies_house_api.get_officer(officer_id=ch_officer_id)
 
         if raw_result is None:
             return None

@@ -12,25 +12,23 @@ def check_and_init_config():
         click.echo("config json file doesn't exist. Use \'chi set_config\' command")
         sys.exit()
 
-    if config_dict is None:
-        click.echo('config file broken.')
+    if config_dict is None or len(config_dict):
+        click.echo('set config.')
         sys.exit()
 
-    config_pass = True
-
-    for key, value in config_dict.items():
-        if value is None or value == '':
-            click.echo('{key} is not set.')
-            config_pass = False
-
-    if config_pass:
-        return config.Config(**config_dict)
-    else:
-        click.echo('Use set_config command to set.')
-        sys.exit()
+    return config.Config(**config_dict)
 
 
-def set_config(config_dict):
+def set_config(**kwargs):
+    try:
+        with open("config.json", "r") as f:
+            config_dict = json.load(f)
+    except:
+        config_dict = {}
+
+    for key, value in kwargs.items():
+        config_dict[key] = value
+
     try:
         with open("config.json", "w") as f:
             json.dump(config_dict, f)

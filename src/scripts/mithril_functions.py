@@ -5,14 +5,9 @@ from . import save_network
 import sys
 
 
-def setconfig(normal_key, uri, username, pw):
-    config_dict = {'normal_key': normal_key,
-                   'uri': uri,
-                   'username': username,
-                   'pw': pw
-                   }
+def setconfig(**kwargs):
 
-    helpers.set_config(config_dict)
+    helpers.set_config(**kwargs)
 
 
 def createnetwork(ch_officer_ids=None, ch_company_numbers=None, save_json_path='',
