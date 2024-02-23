@@ -10,18 +10,35 @@ def setconfig(**kwargs):
     helpers.set_config(**kwargs)
 
 
+def create_same_as_relationships(relationships, network):
+
+    for relationship in relationships:
+        # could input kwargs but leaving this here to remind that relationships needs to be list
+        # of dicts with these keys
+        network.create_same_as_relationship(parent_node_id=relationship['parent_node_id'],
+                                            child_node_id=relationship['child_node_id']
+                                            )
+
+    return network
+
+
 def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None,
                   save_json_path='',
                   save_csvs_path='',
-                  save_xlsx_path='', save_neo4j='', overwrite_neo4j=False):
+                  save_xlsx_path='', save_neo4j='', overwrite_neo4j=False, same_as=None):
+
+
     config = helpers.check_and_init_config()
 
     ch_officer_ids = [] if ch_officer_ids is None else ch_officer_ids
     ch_company_numbers = [] if ch_company_numbers is None else ch_company_numbers
     ol_node_ids = [] if ol_node_ids is None else ol_node_ids
+    same_as = [] if same_as is None else same_as
 
     network = Network.start(ch_officer_ids=ch_officer_ids, ch_company_numbers=ch_company_numbers,
                             offshore_leaks_nodes=ol_node_ids)
+
+    create_same_as_relationships(same_as, network)
 
     if save_json_path != "":
         try:

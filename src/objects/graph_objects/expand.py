@@ -3,19 +3,20 @@ from .relationships import relationship_factory
 from src.scripts.OffshoreLeaks import offshore_leaks_api
 
 
-def expand_node(node, existing_nodes, existing_relationships):
+def expand_node(node, existing_nodes):
     if isinstance(node, node_factory.ch_officer):
-        return expand_ch_officer(node, existing_nodes, existing_relationships)
+        return expand_ch_officer(node, existing_nodes)
     elif isinstance(node, node_factory.ch_company):
-        return expand_ch_company(node, existing_nodes, existing_relationships)
+        return expand_ch_company(node, existing_nodes)
     elif isinstance(node, node_factory.ol_node):
-        return expand_ol_node(node, existing_nodes, existing_relationships)
+        return expand_ol_node(node, existing_nodes)
     else:
         print('System ERROR haven\'t implement expand for ' + node.node_type)
         return None, None
 
 
-def expand_ol_node(node, existing_nodes, existing_relationships):
+def expand_ol_node(node, existing_nodes):
+    print('expanding OffshoreLeaks node ' + node.unique_label)
     raw_relationships = offshore_leaks_api.get_relationships(db_node_id=node.db_node_id)
 
     new_node_relationship_tuples = []
@@ -49,15 +50,14 @@ def expand_ol_node(node, existing_nodes, existing_relationships):
                                                                 **raw_relationship
                                                                 )
 
-        if relationship_already_exists(new_relationship, existing_relationships):
-            continue
-        else:
-            new_node_relationship_tuples.append((related_node, new_relationship))
+        new_node_relationship_tuples.append((related_node, new_relationship))
+
+    node.expanded = True
 
     return new_node_relationship_tuples
 
 
-def expand_ch_company(ch_company, existing_nodes, existing_relationships):
+def expand_ch_company(ch_company, existing_nodes):
     print('expanding CH Company ' + ch_company.company_name)
 
     new_officer_appointment_tuples = []
@@ -81,17 +81,15 @@ def expand_ch_company(ch_company, existing_nodes, existing_relationships):
                                                              child_node_name=ch_company.unique_label,
                                                              parent_id=ch_officer.node_id, child_id=ch_company.node_id,
                                                              **item)
-        if relationship_already_exists(ch_appointment, existing_relationships):
-            continue
-        else:
-            new_officer_appointment_tuples.append((ch_officer, ch_appointment))
+
+        new_officer_appointment_tuples.append((ch_officer, ch_appointment))
 
     ch_company.expanded = True
 
     return new_officer_appointment_tuples
 
 
-def expand_ch_officer(ch_officer, existing_nodes, existing_relationships):
+def expand_ch_officer(ch_officer, existing_nodes):
     print('expanding CH Officer ' + ch_officer.name)
 
     new_company_appointment_tuples = []
@@ -109,33 +107,11 @@ def expand_ch_officer(ch_officer, existing_nodes, existing_relationships):
                                                              parent_id=ch_officer.node_id, child_id=ch_company.node_id,
                                                              **item)
 
-        if relationship_already_exists(ch_appointment, existing_relationships):
-            continue
-        else:
-            new_company_appointment_tuples.append((ch_company, ch_appointment))
+        new_company_appointment_tuples.append((ch_company, ch_appointment))
 
     ch_officer.expanded = True
 
     return new_company_appointment_tuples
 
 
-def relationship_already_exists(new_relationship, existing_relationships):
-    flat_new_relationship = new_relationship.to_flat_dict()
 
-    already_exists = False
-
-    for relationship in existing_relationships:
-        identical = True
-
-        flat_relationship = relationship.to_flat_dict()
-
-        for key, value in flat_relationship.items():
-            if flat_new_relationship.get(key, None) != value:
-                identical = False
-                break
-
-        if identical:
-            already_exists = True
-            break
-
-    return already_exists

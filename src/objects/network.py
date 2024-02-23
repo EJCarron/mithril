@@ -147,6 +147,9 @@ class Network:
     def add_ch_appointment(self, appointment):
         self.add_relationship(appointment, relationship_factory.ch_appointment)
 
+    def add_same_as(self, same_as_relationship):
+        self.add_relationship(same_as_relationship, relationship_factory.same_as)
+
     @classmethod
     def start(cls, ch_officer_ids, ch_company_numbers, offshore_leaks_nodes):
 
@@ -187,14 +190,18 @@ class Network:
             if node.expanded:
                 continue
 
-            new_node_relationship_tuples = expand.expand_node(node, new_nodes, new_relationships)
+            new_node_relationship_tuples = expand.expand_node(node, new_nodes)
 
             for new_node_relationship_tuple in new_node_relationship_tuples:
+
                 new_node = new_node_relationship_tuple[0]
                 new_relationship = new_node_relationship_tuple[1]
 
-                new_nodes[new_node.node_id] = new_node
-                new_relationships.append(new_relationship)
+                if self.relationship_already_exists(new_relationship, new_relationships):
+                    continue
+                else:
+                    new_nodes[new_node.node_id] = new_node
+                    new_relationships.append(new_relationship)
 
         self.set_nodes(new_nodes)
         self.set_relationships(new_relationships)
@@ -276,3 +283,50 @@ class Network:
         for relationship in self.relationships:
             cypher += '\n {clause}'.format(clause=relationship.render_create_clause())
         return cypher
+
+    def create_same_as_relationship(self, parent_node_id, child_node_id):
+        parent_node = self.get_node(parent_node_id)
+        child_node = self.get_node(child_node_id)
+
+        if parent_node is None or child_node is None:
+            print('System Error: same relationship nodes aren\'t in network')
+            return None
+
+        kwargs = {'child': {x: child_node.__dict__[x] for x in child_node.__dict__ if x != 'node_id'},
+                  'parent': {x: parent_node.__dict__[x] for x in parent_node.__dict__ if x != 'node_id'}
+                  }
+
+        relationship = relationship_factory.same_as(parent_node_name=parent_node.unique_label,
+                                                    parent_id=parent_node.node_id,
+                                                    child_node_name=child_node.unique_label,
+                                                    child_id=child_node.node_id,
+                                                    **kwargs
+                                                    )
+
+        if self.relationship_already_exists(new_relationship=relationship, existing_relationships=self.relationships):
+            print('relationship already exists')
+            return None
+        else:
+            self.add_same_as(relationship)
+
+    @classmethod
+    def relationship_already_exists(cls, new_relationship, existing_relationships):
+        flat_new_relationship = new_relationship.to_flat_dict()
+
+        already_exists = False
+
+        for relationship in existing_relationships:
+            identical = True
+
+            flat_relationship = relationship.to_flat_dict()
+
+            for key, value in flat_relationship.items():
+                if flat_new_relationship.get(key, None) != value:
+                    identical = False
+                    break
+
+            if identical:
+                already_exists = True
+                break
+
+        return already_exists
