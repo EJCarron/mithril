@@ -12,7 +12,7 @@ def check_and_init_config():
         click.echo("config json file doesn't exist. Use \'chi set_config\' command")
         sys.exit()
 
-    if config_dict is None or len(config_dict):
+    if config_dict is None or len(config_dict) == 0 :
         click.echo('set config.')
         sys.exit()
 

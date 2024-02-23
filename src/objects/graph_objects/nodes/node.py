@@ -29,3 +29,7 @@ class Node(GraphObject):
         '''.format(name=self.unique_label, label=self.node_type, parameters=parameters_string)
 
         return clause_string
+
+    def expand(self):
+        print('expand not implemented')
+        return None

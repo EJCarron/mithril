@@ -10,15 +10,18 @@ def setconfig(**kwargs):
     helpers.set_config(**kwargs)
 
 
-def createnetwork(ch_officer_ids=None, ch_company_numbers=None, save_json_path='',
+def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None,
+                  save_json_path='',
                   save_csvs_path='',
                   save_xlsx_path='', save_neo4j='', overwrite_neo4j=False):
     config = helpers.check_and_init_config()
 
     ch_officer_ids = [] if ch_officer_ids is None else ch_officer_ids
     ch_company_numbers = [] if ch_company_numbers is None else ch_company_numbers
+    ol_node_ids = [] if ol_node_ids is None else ol_node_ids
 
-    network = Network.start(ch_officer_ids=ch_officer_ids, ch_company_numbers=ch_company_numbers)
+    network = Network.start(ch_officer_ids=ch_officer_ids, ch_company_numbers=ch_company_numbers,
+                            offshore_leaks_nodes=ol_node_ids)
 
     if save_json_path != "":
         try:

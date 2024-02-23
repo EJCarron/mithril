@@ -8,6 +8,19 @@ def mithril():
 
 
 @mithril.command()
+@click.option("--normal_key", "-nk", prompt='Your Companies House api Key',
+              help="You need to make an account with Companies House to have a key.", default='')
+@click.option("--uri", "-uri", prompt='Your neo4j DB uri', default='')
+@click.option("--username", "-un", prompt="Your neo4j username", default='neo4j')
+@click.option("--pw", "-pw", prompt="Your neo4j db password", default='')
+@click.option("--appointment_limit", "-al", default=100)
+@click.option("--offshore_leaks_db_path", "-oldp", default='')
+def setconfig(normal_key, uri, username, pw, appointment_limit, offshore_leaks_db_path):
+    mithril_functions.setconfig(normal_key=normal_key, uri=uri, username=username, pw=pw,
+                                appointment_limit=appointment_limit, offshore_leaks_db_path=offshore_leaks_db_path)
+
+
+@mithril.command()
 @click.option("--ch_officer_ids", "-choid", multiple=True, default=[], required=False,
               help="Can be found in the url of the person\'s Companies House profile.")
 @click.option("--ch_company_numbers", "-chcn", multiple=True, default=[], required=False,

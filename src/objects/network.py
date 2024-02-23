@@ -3,6 +3,7 @@ import sys
 from .graph_objects.nodes import node_factory
 from .graph_objects.relationships import relationship_factory
 from .graph_objects import expand
+from .graph_objects.nodes.offshore_leaks import init_offshore_leaks_nodes
 import pandas as pd
 
 
@@ -50,6 +51,30 @@ class Network:
         return self.get_nodes_of_type(node_type=node_factory.ch_company)
 
     @property
+    def ol_nodes(self):
+        return self.get_nodes_of_type(node_type=node_factory.ol_node)
+
+    @property
+    def ol_addresses(self):
+        return self.get_nodes_of_type(node_type=node_factory.ol_address)
+
+    @property
+    def ol_entities(self):
+        return self.get_nodes_of_type(node_type=node_factory.ol_entity)
+
+    @property
+    def ol_intermediaries(self):
+        return self.get_nodes_of_type(node_type=node_factory.ol_intermediary)
+
+    @property
+    def ol_officers(self):
+        return self.get_nodes_of_type(node_type=node_factory.ol_officer)
+
+    @property
+    def ol_others(self):
+        return self.get_nodes_of_type(node_type=node_factory.ol_other)
+
+    @property
     def ch_appointments(self):
         return self.get_relationships_of_type(relationship_type=relationship_factory.ch_appointment)
 
@@ -95,25 +120,54 @@ class Network:
             print('Internal Error, tried to add non relationship to network relationships list')
             sys.exit()
 
-    def add_ch_company(self, entity):
-        self.add_node(entity, node_type=node_factory.ch_company)
+    def add_ch_company(self, ch_company):
+        self.add_node(ch_company, node_type=node_factory.ch_company)
 
     def add_ch_officer(self, ch_officer):
         self.add_node(ch_officer, node_type=node_factory.ch_officer)
+
+    def add_ol_node(self, ol_node):
+        self.add_node(ol_node, node_type=node_factory.ol_node)
+
+    def add_ol_address(self, ol_address):
+        self.add_node(ol_address, node_type=node_factory.ol_address)
+
+    def add_ol_entity(self, ol_entity):
+        self.add_node(ol_entity, node_type=node_factory.ol_entity)
+
+    def add_ol_intermediary(self, ol_intermediary):
+        self.add_node(ol_intermediary, node_type=node_factory.ol_intermediary)
+
+    def add_ol_officer(self, ol_officer):
+        self.add_node(ol_officer, node_type=node_factory.ol_officer)
+
+    def add_ol_other(self, ol_other):
+        self.add_node(ol_other, node_type=node_factory.ol_other)
 
     def add_ch_appointment(self, appointment):
         self.add_relationship(appointment, relationship_factory.ch_appointment)
 
     @classmethod
-    def start(cls, ch_officer_ids, ch_company_numbers):
-        print('Getting core Companies House Officers')
-        core_ch_officers = [node_factory.ch_officer.init_from_id(
-            ch_officer_id, appointments_limit=100) for ch_officer_id in ch_officer_ids]
+    def start(cls, ch_officer_ids, ch_company_numbers, offshore_leaks_nodes):
 
-        core_ch_companies = [node_factory.ch_company.init_from_company_number(
-            ch_company_number) for ch_company_number in ch_company_numbers]
+        nodes = []
 
-        nodes = core_ch_companies + core_ch_officers
+        if len(ch_officer_ids) > 0:
+            print('Getting core Companies House Officers')
+            core_ch_officers = [node_factory.ch_officer.init_from_id(
+                ch_officer_id) for ch_officer_id in ch_officer_ids]
+            nodes += core_ch_officers
+
+        if len(ch_company_numbers) > 0:
+            print('Getting core Companies House Companies')
+            core_ch_companies = [node_factory.ch_company.init_from_company_number(
+                ch_company_number) for ch_company_number in ch_company_numbers]
+            nodes += core_ch_companies
+
+        if len(offshore_leaks_nodes) > 0:
+            print('Getting core Offshore Leaks nodes')
+            core_ol_nodes = init_offshore_leaks_nodes.init_nodes_from_ids(node_ids=offshore_leaks_nodes)
+            nodes += core_ol_nodes
 
         nodes_dict = {node.node_id: node for node in nodes}
 

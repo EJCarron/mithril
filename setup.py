@@ -10,7 +10,8 @@ setup(
                       'click~=8.1.7',
                       'XlsxWriter~=3.1.9',
                       'pandas~=2.0.3',
-                      'thefuzz~=0.22.1'
+                      'thefuzz~=0.22.1',
+                      'psycopg2-binary~=2.9.9'
                       ],
     entry_points={
         'console_scripts': [

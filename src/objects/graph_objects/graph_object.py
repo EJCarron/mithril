@@ -2,7 +2,7 @@ from collections.abc import MutableMapping
 
 
 class GraphObject:
-    bad_name_chars = ['-', '(', ')', '.', '@', '&', '\'', '’', '/', ',']
+    bad_name_chars = ['-', '(', ')', '.', '@', '&', '\'', '’', '/', ',', '#', ';']
 
     @classmethod
     def clean_name(cls, dirty_name):

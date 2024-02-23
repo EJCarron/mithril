@@ -1,4 +1,4 @@
-from .node import Node
+from src.objects.graph_objects.nodes.node import Node
 from src.scripts.companies_house import companies_house_api
 
 
