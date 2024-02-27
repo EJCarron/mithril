@@ -223,12 +223,12 @@ def find_matches(search_dicts):
         if response is not None:
 
             for hit in response['hits']:
-                result = hit['document']
-                result['collection'] = search_dict['collection']
-                result['compare_node_id'] = search_dict['node_id']
-                result['compare_node_name'] = search_dict['node_name']
-                result['matched_to'] = search_dict['params']['q']
-                result['searched_by']= search_dict['params']['query_by']
+                result = {'values': hit['document'], 'info': {}}
+                result['info']['collection'] = search_dict['collection']
+                result['info']['compare_node_id'] = search_dict['node_id']
+                result['info']['compare_node_name'] = search_dict['node_name']
+                result['info']['matched_to'] = search_dict['params']['q']
+                result['info']['searched_by'] = search_dict['params']['query_by']
                 results.append(result)
 
     return results
