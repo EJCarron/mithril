@@ -2,6 +2,7 @@ from .offshore_leaks_node import OffshoreLeaksNode
 
 
 class OffshoreLeaksAddress(OffshoreLeaksNode):
+
     def render_unique_label(self):
 
         start_label = self.address if self.address is not None else self.name

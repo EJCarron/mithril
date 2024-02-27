@@ -6,12 +6,9 @@ class OffshoreLeaksNode(Node):
 
     def __init__(self, **kwargs):
         super(OffshoreLeaksNode, self).__init__()
-        self.db_node_id = ''
+        self.node_id = 'ol_' + kwargs['db_node_id']
         self.__dict__.update(kwargs)
 
-    @property
-    def node_id(self):
-        return "ol_" + str(self.db_node_id)
 
 
 

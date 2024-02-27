@@ -16,24 +16,35 @@ class Network:
 
     # Getters
 
-    def get_nodes_of_type(self, node_type):
+    def get_nodes_of_type(self, node_type, inverse=False):
 
         found_nodes = {}
+        exclude_nodes = {}
 
         for node_id, node in self.nodes.items():
             if isinstance(node, node_type):
                 found_nodes[node_id] = node
+            else:
+                exclude_nodes[node_id] = node
+        if inverse:
+            return exclude_nodes
+        else:
+            return found_nodes
 
-        return found_nodes
-
-    def get_relationships_of_type(self, relationship_type):
+    def get_relationships_of_type(self, relationship_type, inverse=False):
         found_relationships = []
+        exclude_relationships = []
 
         for relationship in self.relationships:
             if isinstance(relationship, relationship_type):
                 found_relationships.append(relationship)
+            else:
+                exclude_relationships.append(relationship)
 
-        return found_relationships
+        if inverse:
+            return exclude_relationships
+        else:
+            return found_relationships
 
     def get_node(self, node_id):
         if node_id in self.nodes.keys():
@@ -53,6 +64,10 @@ class Network:
     @property
     def ol_nodes(self):
         return self.get_nodes_of_type(node_type=node_factory.ol_node)
+
+    @property
+    def non_ol_nodes(self):
+        return self.get_nodes_of_type(node_type=node_factory.ol_node, inverse=True)
 
     @property
     def ol_addresses(self):
@@ -77,6 +92,7 @@ class Network:
     @property
     def ch_appointments(self):
         return self.get_relationships_of_type(relationship_type=relationship_factory.ch_appointment)
+
 
     # Setters
 

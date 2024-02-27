@@ -3,7 +3,7 @@ from . import helpers
 import click
 from . import save_network
 import sys
-
+from .cross_referencing import cross_referencing
 
 def setconfig(**kwargs):
 
@@ -110,3 +110,8 @@ def loadjsonsavexlsx(load_path, save_path):
     except Exception as e:
         click.echo("failed to save xlsx")
         click.echo(e)
+
+def find_potential_offshore_leaks_matches(json_path):
+    network = load_network(json_path)
+
+    potential_matches = cross_referencing.find_potential_connections_in_offshore_leaks_db(network)

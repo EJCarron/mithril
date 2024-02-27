@@ -1,5 +1,6 @@
 from .. import helpers
 import psycopg2
+import typesense
 
 
 def connect_to_db():
@@ -21,7 +22,7 @@ def render_select_nodes_query(table, node_ids):
     return f'SELECT * FROM {table} where db_node_id in{nodes}'
 
 
-def execute_query(query, node_type):
+def execute_get_nodes_query(query, node_type):
     conn = connect_to_db()
     cursor = conn.cursor()
     cursor.execute(query)
@@ -43,11 +44,32 @@ def execute_query(query, node_type):
     return nodes
 
 
+# def execute_get_matches_query(query):
+#     conn = connect_to_db()
+#     cursor = conn.cursor()
+#     cursor.execute(query)
+#     raw_results = cursor.fetchall()
+#     column_names = [desc[0] for desc in cursor.description]
+#
+#     if raw_results is None:
+#         return None
+#
+#     matches = []
+#
+#     for raw_result in raw_results:
+#         result = {}
+#         for i in range(len(column_names)):
+#             result[column_names[i]] = raw_result[i]
+#
+#         matches.append(result)
+#
+#     return matches
+
+
 def get_nodes_of_type(node_ids, table, node_type):
     query = render_select_nodes_query(table=table, node_ids=node_ids)
-    nodes = execute_query(query, node_type)
+    nodes = execute_get_nodes_query(query, node_type)
     return nodes
-
 
 
 def get_addresses(node_ids):
@@ -101,6 +123,112 @@ def get_relationships(db_node_id):
     query = 'SELECT * FROM {table} WHERE node_id_start={node_id} or node_id_end={node_id}'.format(
         table=config.database_relationships_table, node_id=db_node_id)
 
-    nodes = execute_query(query, 'OffshoreLeaksRelationship')
+    nodes = execute_get_nodes_query(query, 'OffshoreLeaksRelationship')
 
     return nodes
+
+
+def clean_for_fuzz(name):
+    strip_strings = ['plc', 'ltd', 'limited', 'llp', 'co.', '.', ',', ':', ';', '(', ')']
+
+    name = name.lower()
+
+    for stripper in strip_strings:
+        name = name.replace(stripper, '')
+
+    name = name.strip()
+
+    return name
+
+
+# def render_fuzz_match_query(node_dicts):
+#     config = helpers.get_config()
+#
+#     searches = []
+#
+#     for node in node_dicts:
+#         node['fuzz_name'] = clean_for_fuzz(node['name'])
+#
+#         def render_search(node_type, node_name, fuzz_name, node_id, fuzz_threshold):
+#             return f"""
+#                 \n
+#                 insert into potentialMatches
+#                 SELECT '{node_type}', db_node_id , original_name, '{node_name}', '{node_id}',
+#                 levenshtein('{fuzz_name}', fuzz_name)
+#                 from {config.fuzzy_table}
+#                 where levenshtein('{fuzz_name}', fuzz_name) < {fuzz_threshold};
+#                 \n
+#                 """
+#
+#         searches.append(render_search(node_type=node['node_type'], node_name=node['fuzz_name'],
+#                                       node_id=node['node_id'],
+#                                       fuzz_threshold=3
+#                                       ))
+#
+#     search_statements = ''.join(searches)
+#
+#     query = """
+#         create temp table potentialMatches(node_type text,
+#         match_node_id text, match_node_name text, compare_node_name text, compare_node_id text, fuzz int);
+#
+#         {search_statements}
+#
+#         select * from potentialMatches order by fuzz;
+#
+#         drop table potentialMatches;
+#
+#         """.format(search_statements=search_statements)
+#
+#     return query
+
+
+def make_typesense_client():
+    client = typesense.Client({
+        'nodes': [{
+            'host': 'localhost',
+            'port': '8108',
+            'protocol': 'http'
+        }],
+        'api_key': 'xyz',
+        'connection_timeout_seconds': 20
+    })
+    return client
+
+
+def make_typesense_search_parameters(query_string, query_by):
+    search_parameters = {
+        'q': f'{query_string}',
+        'query_by': f'{query_by}'
+    }
+    return search_parameters
+
+
+def search_typesense_db(client, search, collection):
+    response = client.collections[collection].documents.search(search)
+
+    return response
+
+
+# cannot feed script node objects, so nodes given to search against must be list of dicts.
+# The Dicts only have to have node_id and node_name to cross-reference against
+def find_matches(search_dicts):
+
+    client = make_typesense_client()
+
+    results = []
+
+    for search_dict in search_dicts:
+        response = search_typesense_db(client=client, search=search_dict['params'],
+                                       collection=search_dict['collection'])
+        if response is not None:
+
+            for hit in response['hits']:
+                result = hit['document']
+                result['collection'] = search_dict['collection']
+                result['compare_node_id'] = search_dict['node_id']
+                result['compare_node_name'] = search_dict['node_name']
+                result['matched_to'] = search_dict['params']['q']
+                result['searched_by']= search_dict['params']['query_by']
+                results.append(result)
+
+    return results

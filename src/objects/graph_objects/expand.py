@@ -58,7 +58,7 @@ def expand_ol_node(node, existing_nodes):
 
 
 def expand_ch_company(ch_company, existing_nodes):
-    print('expanding CH Company ' + ch_company.company_name)
+    print('expanding CH Company ' + ch_company.name)
 
     new_officer_appointment_tuples = []
 
@@ -70,10 +70,10 @@ def expand_ch_company(ch_company, existing_nodes):
         else:
             ch_officer = node_factory.ch_officer.init_from_id(ch_officer_id)
 
-        item = ch_officer.get_item_from_company_number(ch_company.company_number)
+        item = ch_officer.get_item_from_company_number(ch_company.node_id)
 
         if item is None:
-            print('ERROR appointment to {0} not found in {1}\'s appointment list'.format(ch_company.company_name,
+            print('ERROR appointment to {0} not found in {1}\'s appointment list'.format(ch_company.name,
                                                                                          ch_officer.name))
             continue
 

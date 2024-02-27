@@ -7,13 +7,8 @@ class CompaniesHouseOfficer(Node):
     def __init__(self, **kwargs):
         super(CompaniesHouseOfficer, self).__init__()
         self.name = None
-        self.officer_id = None
         self.items = None
         self.__dict__.update(kwargs)
-
-    @property
-    def node_id(self):
-        return self.officer_id
 
     @classmethod
     def init_from_id(cls, ch_officer_id):
@@ -27,7 +22,7 @@ class CompaniesHouseOfficer(Node):
 
     @classmethod
     def from_api_result(cls, result):
-        result['officer_id'] = companies_house_api.extract_id_from_link(result['links']['self'])
+        result['node_id'] = companies_house_api.extract_id_from_link(result['links']['self'])
         result['name'] = cls.clean_name(result['name'])
 
         new_officer = cls(**result)
@@ -45,5 +40,5 @@ class CompaniesHouseOfficer(Node):
         return found_item
 
     def render_unique_label(self):
-        unique_label = '{name}_{id}'.format(name=self.name.replace(' ', '_'), id=self.officer_id)
+        unique_label = '{name}_{id}'.format(name=self.name.replace(' ', '_'), id=self.node_id)
         return unique_label

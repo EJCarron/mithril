@@ -11,7 +11,8 @@ setup(
                       'XlsxWriter~=3.1.9',
                       'pandas~=2.0.3',
                       'thefuzz~=0.22.1',
-                      'psycopg2-binary~=2.9.9'
+                      'psycopg2-binary~=2.9.9',
+                      'typesense~=0.19.0'
                       ],
     entry_points={
         'console_scripts': [
