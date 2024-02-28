@@ -93,6 +93,9 @@ class Network:
     def ch_appointments(self):
         return self.get_relationships_of_type(relationship_type=relationship_factory.ch_appointment)
 
+    @property
+    def regulated_donees(self):
+        return self.get_nodes_of_type(node_type=node_factory.regulated_donee)
 
     # Setters
 
@@ -160,11 +163,17 @@ class Network:
     def add_ol_other(self, ol_other):
         self.add_node(ol_other, node_type=node_factory.ol_other)
 
+    def add_regulated_donee(self, regulated_donee):
+        self.add_node(regulated_donee, node_type=node_factory.regulated_donee)
+
     def add_ch_appointment(self, appointment):
         self.add_relationship(appointment, relationship_factory.ch_appointment)
 
     def add_same_as(self, same_as_relationship):
         self.add_relationship(same_as_relationship, relationship_factory.same_as)
+
+    def add_donation_relationship(self, donation_relationship):
+        self.add_relationship(donation_relationship, relationship_factory.donation)
 
     @classmethod
     def start(cls, ch_officer_ids, ch_company_numbers, offshore_leaks_nodes):
@@ -299,6 +308,27 @@ class Network:
         for relationship in self.relationships:
             cypher += '\n {clause}'.format(clause=relationship.render_create_clause())
         return cypher
+
+    def create_donation_relationship(self, parent_node_id, child_node_id, attributes):
+        parent_node = self.get_node(parent_node_id)
+        child_node = self.get_node(child_node_id)
+
+        if parent_node is None or child_node is None:
+            print('System Error: donation relationship nodes aren\'t in network')
+            return None
+
+        relationship = relationship_factory.donation(parent_node_name=parent_node.unique_label,
+                                                     parent_id=parent_node.node_id,
+                                                     child_node_name=child_node.unique_label,
+                                                     child_id=child_node.node_id,
+                                                     **attributes
+                                                     )
+
+        if self.relationship_already_exists(new_relationship=relationship, existing_relationships=self.relationships):
+            print('relationship already exists')
+            return None
+        else:
+            self.add_donation_relationship(relationship)
 
     def create_same_as_relationship(self, parent_node_id, child_node_id):
         parent_node = self.get_node(parent_node_id)

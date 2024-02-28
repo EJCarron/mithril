@@ -122,6 +122,15 @@ def add_offshore_leak_connections_to_network(json_path, matches):
 
     network = cross_referencing.add_offshore_leaks_connections_to_network(matches=matches, network=network)
 
-    network.expand_network()
+    network.save_json(json_path)
+
+def find_potential_donations_matches(json_path):
+    network = load_network(json_path)
+    return cross_referencing.find_potential_donations_matches(network)
+
+def add_donations_connections_to_network(json_path, matches):
+    network = load_network(json_path)
+
+    network = cross_referencing.add_donations_connections_to_network(matches=matches, network=network)
 
     network.save_json(json_path)

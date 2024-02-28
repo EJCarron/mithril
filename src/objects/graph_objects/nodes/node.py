@@ -6,6 +6,7 @@ class Node(GraphObject):
         self.node_type = type(self).__name__
         self.expanded = False
         self.node_id = 'not_implemented_node_id'
+        self.name = 'not implemented name'
 
     @property
     def unique_label(self):

@@ -1,7 +1,7 @@
 from .. import helpers
 import psycopg2
 import typesense
-
+from .. import typesense_client
 
 def connect_to_db():
     config = helpers.get_config()
@@ -182,53 +182,7 @@ def clean_for_fuzz(name):
 #     return query
 
 
-def make_typesense_client():
-    client = typesense.Client({
-        'nodes': [{
-            'host': 'localhost',
-            'port': '8108',
-            'protocol': 'http'
-        }],
-        'api_key': 'xyz',
-        'connection_timeout_seconds': 20
-    })
-    return client
-
-
-def make_typesense_search_parameters(query_string, query_by):
-    search_parameters = {
-        'q': f'{query_string}',
-        'query_by': f'{query_by}'
-    }
-    return search_parameters
-
-
-def search_typesense_db(client, search, collection):
-    response = client.collections[collection].documents.search(search)
-
-    return response
-
-
-# cannot feed script node objects, so nodes given to search against must be list of dicts.
-# The Dicts only have to have node_id and node_name to cross-reference against
 def find_matches(search_dicts):
+    return typesense_client.find_matches(search_dicts)
 
-    client = make_typesense_client()
 
-    results = []
-
-    for search_dict in search_dicts:
-        response = search_typesense_db(client=client, search=search_dict['params'],
-                                       collection=search_dict['collection'])
-        if response is not None:
-
-            for hit in response['hits']:
-                result = {'values': hit['document'], 'info': {}}
-                result['info']['collection'] = search_dict['collection']
-                result['info']['compare_node_id'] = search_dict['node_id']
-                result['info']['compare_node_name'] = search_dict['node_name']
-                result['info']['matched_to'] = search_dict['params']['q']
-                result['info']['searched_by'] = search_dict['params']['query_by']
-                results.append(result)
-
-    return results

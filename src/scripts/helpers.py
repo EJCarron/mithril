@@ -18,7 +18,6 @@ def check_and_init_config():
 
     return config.Config(**config_dict)
 
-
 def set_config(**kwargs):
     try:
         with open("config.json", "r") as f:

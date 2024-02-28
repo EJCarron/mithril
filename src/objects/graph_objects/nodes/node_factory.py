@@ -6,6 +6,7 @@ from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_entity import
 from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_intermediary import OffshoreLeaksIntermediary
 from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_officer import OffshoreLeaksOfficer
 from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_other import OffshoreLeaksOther
+from src.objects.graph_objects.nodes.uk_electoral_commission.regulated_donee import RegulatedDonee
 from .node import Node
 
 node_str = Node.__name__
@@ -17,6 +18,7 @@ ol_entity_str = OffshoreLeaksEntity.__name__
 ol_intermediary_str = OffshoreLeaksIntermediary.__name__
 ol_officer_str = OffshoreLeaksOfficer.__name__
 ol_other_str = OffshoreLeaksOther.__name__
+regulated_donee_str = RegulatedDonee.__name__
 
 node = Node
 ch_officer = CompaniesHouseOfficer
@@ -27,6 +29,7 @@ ol_entity = OffshoreLeaksEntity
 ol_intermediary = OffshoreLeaksIntermediary
 ol_officer = OffshoreLeaksOfficer
 ol_other = OffshoreLeaksOther
+regulated_donee = RegulatedDonee
 
 node_dict = {node_str: node,
              ch_officer_str: ch_officer,
@@ -36,7 +39,8 @@ node_dict = {node_str: node,
              ol_entity_str: ol_entity,
              ol_intermediary_str: ol_intermediary,
              ol_officer_str: ol_officer,
-             ol_other_str: ol_other
+             ol_other_str: ol_other,
+             regulated_donee_str: regulated_donee
              }
 
 ol_list = [ol_address, ol_entity, ol_intermediary, ol_officer, ol_other]
