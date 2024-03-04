@@ -5,12 +5,15 @@ from .graph_objects.relationships import relationship_factory
 from .graph_objects import expand
 from .graph_objects.nodes.offshore_leaks import init_offshore_leaks_nodes
 import pandas as pd
+import uuid
 
 
 class Network:
     clear_network_strings = ('match (a) -[r] -> () delete a, r', 'match (a) delete a',)
 
-    def __init__(self, nodes=None, relationships=None):
+    def __init__(self, nodes=None, relationships=None, name=''):
+        self.uuid = uuid.uuid4()
+        self.name = name
         self.nodes = {} if nodes is None else nodes
         self.relationships = [] if relationships is None else relationships
 
@@ -176,7 +179,7 @@ class Network:
         self.add_relationship(donation_relationship, relationship_factory.donation)
 
     @classmethod
-    def start(cls, ch_officer_ids, ch_company_numbers, offshore_leaks_node_ids):
+    def start(cls, ch_officer_ids, ch_company_numbers, offshore_leaks_node_ids, network_name):
 
         nodes = []
 
@@ -199,7 +202,7 @@ class Network:
 
         nodes_dict = {node.node_id: node for node in nodes}
 
-        network = cls(nodes=nodes_dict)
+        network = cls(nodes=nodes_dict, name=network_name)
 
         network.expand_network()
 

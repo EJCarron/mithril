@@ -25,7 +25,7 @@ def create_same_as_relationships(relationships, network):
 def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None,
                   save_json_path='',
                   save_csvs_path='',
-                  save_xlsx_path='', save_neo4j=False, overwrite_neo4j=False, same_as=None, expand=0):
+                  save_xlsx_path='', save_neo4j=False, overwrite_neo4j=False, same_as=None, expand=0, network_name=''):
     config = helpers.check_and_init_config()
 
     ch_officer_ids = [] if ch_officer_ids is None else ch_officer_ids
