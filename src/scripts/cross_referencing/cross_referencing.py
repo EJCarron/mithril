@@ -43,6 +43,7 @@ def add_offshore_leaks_connections_to_network(matches, network):
 
         match['values']['db_node_id'] = match['values']['node_id']
         del match['values']['node_id']
+        del match['values']['id']
 
         if match['info']['collection'] == 'entities':
             node = node_factory.ol_entity(**match['values'])

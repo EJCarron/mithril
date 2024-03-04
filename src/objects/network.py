@@ -176,7 +176,7 @@ class Network:
         self.add_relationship(donation_relationship, relationship_factory.donation)
 
     @classmethod
-    def start(cls, ch_officer_ids, ch_company_numbers, offshore_leaks_nodes):
+    def start(cls, ch_officer_ids, ch_company_numbers, offshore_leaks_node_ids):
 
         nodes = []
 
@@ -192,9 +192,9 @@ class Network:
                 ch_company_number) for ch_company_number in ch_company_numbers]
             nodes += core_ch_companies
 
-        if len(offshore_leaks_nodes) > 0:
+        if len(offshore_leaks_node_ids) > 0:
             print('Getting core Offshore Leaks nodes')
-            core_ol_nodes = init_offshore_leaks_nodes.init_nodes_from_ids(node_ids=offshore_leaks_nodes)
+            core_ol_nodes = init_offshore_leaks_nodes.init_nodes_from_ids(node_ids=offshore_leaks_node_ids)
             nodes += core_ol_nodes
 
         nodes_dict = {node.node_id: node for node in nodes}

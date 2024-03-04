@@ -75,7 +75,7 @@ def expand_ch_company(ch_company, existing_nodes):
         if item is None:
             print('ERROR appointment to {0} not found in {1}\'s appointment list'.format(ch_company.name,
                                                                                          ch_officer.name))
-            continue
+            item = {}
 
         ch_appointment = relationship_factory.ch_appointment(parent_node_name=ch_officer.unique_label,
                                                              child_node_name=ch_company.unique_label,

@@ -1,9 +1,10 @@
-from ..objects.network import Network
-from . import helpers
+
+from src.objects.network import Network
+from src.scripts import helpers
 import click
-from . import save_network
+from src.scripts import save_network
 import sys
-from .cross_referencing import cross_referencing
+from src.scripts.cross_referencing import cross_referencing
 
 
 def setconfig(**kwargs):
@@ -24,7 +25,7 @@ def create_same_as_relationships(relationships, network):
 def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None,
                   save_json_path='',
                   save_csvs_path='',
-                  save_xlsx_path='', save_neo4j='', overwrite_neo4j=False, same_as=None):
+                  save_xlsx_path='', save_neo4j=False, overwrite_neo4j=False, same_as=None, expand=0):
     config = helpers.check_and_init_config()
 
     ch_officer_ids = [] if ch_officer_ids is None else ch_officer_ids
@@ -36,6 +37,10 @@ def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None
                             offshore_leaks_node_ids=ol_node_ids)
 
     create_same_as_relationships(same_as, network)
+
+    if expand > 0:
+        for i in range(expand):
+            network.expand_network()
 
     if save_json_path != "":
         try:
@@ -60,6 +65,7 @@ def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None
             click.echo(e)
 
     if save_neo4j:
+        print('saving as Neo4j graph db')
         try:
             save_network.save_neo4j(network=network, config=config, overwrite_neo4j=overwrite_neo4j)
         except Exception as e:
@@ -134,3 +140,4 @@ def add_donations_connections_to_network(json_path, matches):
     network = cross_referencing.add_donations_connections_to_network(matches=matches, network=network)
 
     network.save_json(json_path)
+

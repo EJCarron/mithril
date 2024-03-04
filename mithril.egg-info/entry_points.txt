@@ -1,2 +1,3 @@
 [console_scripts]
 mithril = src.scripts.mithril:mithril
+
