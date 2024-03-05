@@ -12,7 +12,7 @@ class Network:
     clear_network_strings = ('match (a) -[r] -> () delete a, r', 'match (a) delete a',)
 
     def __init__(self, nodes=None, relationships=None, name=''):
-        self.uuid = uuid.uuid4()
+        self.uuid = str(uuid.uuid4())
         self.name = name
         self.nodes = {} if nodes is None else nodes
         self.relationships = [] if relationships is None else relationships

@@ -23,7 +23,6 @@ def create_same_as_relationships(relationships, network):
 
 
 def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None,
-                  save_json_path='',
                   save_csvs_path='',
                   save_xlsx_path='', save_neo4j=False, overwrite_neo4j=False, same_as=None, expand=0, network_name=''):
     config = helpers.check_and_init_config()
@@ -34,20 +33,13 @@ def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None
     same_as = [] if same_as is None else same_as
 
     network = Network.start(ch_officer_ids=ch_officer_ids, ch_company_numbers=ch_company_numbers,
-                            offshore_leaks_node_ids=ol_node_ids)
+                            offshore_leaks_node_ids=ol_node_ids, network_name=network_name)
 
     create_same_as_relationships(same_as, network)
 
     if expand > 0:
         for i in range(expand):
             network.expand_network()
-
-    if save_json_path != "":
-        try:
-            save_network.save_json(network=network, path=save_json_path)
-        except Exception as e:
-            click.echo("failed to save json")
-            click.echo(e)
 
     if save_csvs_path != "":
         try:
