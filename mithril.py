@@ -1,4 +1,3 @@
-
 from src.objects.network import Network
 from src.scripts import helpers
 import click
@@ -20,6 +19,10 @@ def create_same_as_relationships(relationships, network):
                                             )
 
     return network
+
+
+def make_network_from_dict(network_dict):
+    return Network.from_dict(network_dict)
 
 
 def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None,
@@ -78,33 +81,44 @@ def load_network(load_path):
     return network
 
 
-def loadjsoncreategraph(load_path, overwrite_neo4j):
-    config = helpers.check_and_init_config()
-
-    network = load_network(load_path)
-
-    save_network.save_neo4j(network=network, config=config, overwrite_neo4j=overwrite_neo4j)
-
-
-def loadjsonsavecsvs(load_path, save_path):
-    network = load_network(load_path)
-
+def exportcsvs(network, export_path):
     try:
-        save_network.save_csvs(network=network, path=save_path)
+        save_network.save_csvs(network=network, path=export_path)
     except Exception as e:
         click.echo("failed to save csvs. REMINDER to save csvs provide path to existing directory not to a .csv "
                    "file")
         click.echo(e)
 
 
-def loadjsonsavexlsx(load_path, save_path):
-    network = load_network(load_path)
-
+def exportxlsx(network, export_path):
     try:
-        save_network.save_xlsx(network=network, path=save_path)
+        save_network.save_xlsx(network=network, path=export_path)
     except Exception as e:
         click.echo("failed to save xlsx")
         click.echo(e)
+
+
+def exportgraph(network, overwrite_neo4j):
+    config = helpers.check_and_init_config()
+    save_network.save_neo4j(network=network, config=config, overwrite_neo4j=overwrite_neo4j)
+
+
+def loadjsoncreategraph(load_path, overwrite_neo4j):
+    network = load_network(load_path)
+
+    exportgraph(network, overwrite_neo4j)
+
+
+def loadjsonsavecsvs(load_path, save_path):
+    network = load_network(load_path)
+
+    exportcsvs(network, save_path)
+
+
+def loadjsonsavexlsx(load_path, save_path):
+    network = load_network(load_path)
+
+    exportcsvs(network, save_path)
 
 
 def find_potential_offshore_leaks_matches(json_path):
@@ -122,9 +136,11 @@ def add_offshore_leak_connections_to_network(json_path, matches):
 
     network.save_json(json_path)
 
+
 def find_potential_donations_matches(json_path):
     network = load_network(json_path)
     return cross_referencing.find_potential_donations_matches(network)
+
 
 def add_donations_connections_to_network(json_path, matches):
     network = load_network(json_path)
@@ -132,4 +148,3 @@ def add_donations_connections_to_network(json_path, matches):
     network = cross_referencing.add_donations_connections_to_network(matches=matches, network=network)
 
     network.save_json(json_path)
-

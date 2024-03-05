@@ -289,15 +289,21 @@ class Network:
         return cypher_string
 
     @classmethod
+    def from_dict(cls, network_dict):
+        return cls(relationships=[relationship_factory.relationship_dict[relationship['relationship_type']]
+                                  (**relationship) for relationship in network_dict.get('relationships', [])],
+                   nodes={node_id: node_factory.node_dict[node['node_type']](**node) for node_id, node in
+                          network_dict.get('nodes', {}).items()}
+                   )
+
+    @classmethod
     def load_json(cls, path):
         with open(path) as f:
             data = json.load(f)
 
-        return cls(relationships=[relationship_factory.relationship_dict[relationship['relationship_type']]
-                                  (**relationship) for relationship in data.get('relationships', [])],
-                   nodes={node_id: node_factory.node_dict[node['node_type']](**node) for node_id, node in
-                          data.get('nodes', {}).items()}
-                   )
+        return cls.from_dict(data)
+
+
 
     def get_node_cyphers(self):
         node_cyphers = []
