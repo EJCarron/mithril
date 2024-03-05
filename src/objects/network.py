@@ -11,8 +11,8 @@ import uuid
 class Network:
     clear_network_strings = ('match (a) -[r] -> () delete a, r', 'match (a) delete a',)
 
-    def __init__(self, nodes=None, relationships=None, name=''):
-        self.uuid = str(uuid.uuid4())
+    def __init__(self, nodes=None, relationships=None, name='', network_uuid=''):
+        self.network_uuid = str(uuid.uuid4()) if network_uuid == '' else network_uuid
         self.name = name
         self.nodes = {} if nodes is None else nodes
         self.relationships = [] if relationships is None else relationships
@@ -290,7 +290,9 @@ class Network:
 
     @classmethod
     def from_dict(cls, network_dict):
-        return cls(relationships=[relationship_factory.relationship_dict[relationship['relationship_type']]
+        return cls(name=network_dict['name'],
+                   network_uuid=network_dict['network_uuid'],
+                   relationships=[relationship_factory.relationship_dict[relationship['relationship_type']]
                                   (**relationship) for relationship in network_dict.get('relationships', [])],
                    nodes={node_id: node_factory.node_dict[node['node_type']](**node) for node_id, node in
                           network_dict.get('nodes', {}).items()}

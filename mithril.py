@@ -121,20 +121,16 @@ def loadjsonsavexlsx(load_path, save_path):
     exportcsvs(network, save_path)
 
 
-def find_potential_offshore_leaks_matches(json_path):
-    network = load_network(json_path)
-
+def find_potential_offshore_leaks_matches(network):
     potential_matches = cross_referencing.find_potential_connections_in_offshore_leaks_db(network)
 
     return potential_matches
 
 
-def add_offshore_leak_connections_to_network(json_path, matches):
-    network = load_network(json_path)
-
+def add_offshore_leak_connections_to_network(network, matches):
     network = cross_referencing.add_offshore_leaks_connections_to_network(matches=matches, network=network)
 
-    network.save_json(json_path)
+    return network
 
 
 def find_potential_donations_matches(json_path):
