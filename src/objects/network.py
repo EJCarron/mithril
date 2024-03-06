@@ -208,14 +208,16 @@ class Network:
 
         return network
 
-    def expand_network(self):
+    def expand_network(self, target_node_ids=None):
+
+        target_node_ids = self.nodes.keys() if target_node_ids is None else target_node_ids
 
         new_nodes = self.nodes.copy()
         new_relationships = self.relationships.copy()
 
         for node in self.nodes.values():
 
-            if node.expanded:
+            if node.expanded or node.node_id not in target_node_ids:
                 continue
 
             new_node_relationship_tuples = expand.expand_node(node, new_nodes)
@@ -305,8 +307,6 @@ class Network:
 
         return cls.from_dict(data)
 
-
-
     def get_node_cyphers(self):
         node_cyphers = []
         for node in self.nodes.values():
@@ -329,11 +329,11 @@ class Network:
             return None
 
         relationship = relationship_factory.registered_interest(parent_node_name=parent_node.unique_label,
-                                                     parent_id=parent_node.node_id,
-                                                     child_node_name=child_node.unique_label,
-                                                     child_id=child_node.node_id,
-                                                     **attributes
-                                                     )
+                                                                parent_id=parent_node.node_id,
+                                                                child_node_name=child_node.unique_label,
+                                                                child_id=child_node.node_id,
+                                                                **attributes
+                                                                )
 
         if self.relationship_already_exists(new_relationship=relationship, existing_relationships=self.relationships):
             print('relationship already exists')

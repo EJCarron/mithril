@@ -25,6 +25,10 @@ def make_network_from_dict(network_dict):
     return Network.from_dict(network_dict)
 
 
+def expand_network(network, target_node_ids=None):
+    network.expand_network(target_node_ids)
+    return network
+
 def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None,
                   save_csvs_path='',
                   save_xlsx_path='', save_neo4j=False, overwrite_neo4j=False, same_as=None, expand=0, network_name=''):
