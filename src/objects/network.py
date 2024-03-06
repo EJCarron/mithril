@@ -175,8 +175,8 @@ class Network:
     def add_same_as(self, same_as_relationship):
         self.add_relationship(same_as_relationship, relationship_factory.same_as)
 
-    def add_donation_relationship(self, donation_relationship):
-        self.add_relationship(donation_relationship, relationship_factory.donation)
+    def add_registered_interest_relationship(self, registered_interest_relationship):
+        self.add_relationship(registered_interest_relationship, relationship_factory.registered_interest)
 
     @classmethod
     def start(cls, ch_officer_ids, ch_company_numbers, offshore_leaks_node_ids, network_name):
@@ -320,15 +320,15 @@ class Network:
             cypher += '\n {clause}'.format(clause=relationship.render_create_clause())
         return cypher
 
-    def create_donation_relationship(self, parent_node_id, child_node_id, attributes):
+    def create_registered_interest_relationship(self, parent_node_id, child_node_id, attributes):
         parent_node = self.get_node(parent_node_id)
         child_node = self.get_node(child_node_id)
 
         if parent_node is None or child_node is None:
-            print('System Error: donation relationship nodes aren\'t in network')
+            print('System Error: registered_interest relationship nodes aren\'t in network')
             return None
 
-        relationship = relationship_factory.donation(parent_node_name=parent_node.unique_label,
+        relationship = relationship_factory.registered_interest(parent_node_name=parent_node.unique_label,
                                                      parent_id=parent_node.node_id,
                                                      child_node_name=child_node.unique_label,
                                                      child_id=child_node.node_id,
@@ -339,7 +339,7 @@ class Network:
             print('relationship already exists')
             return None
         else:
-            self.add_donation_relationship(relationship)
+            self.add_registered_interest_relationship(relationship)
 
     def create_same_as_relationship(self, parent_node_id, child_node_id):
         parent_node = self.get_node(parent_node_id)

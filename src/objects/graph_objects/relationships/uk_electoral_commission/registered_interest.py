@@ -1,5 +1,5 @@
 from ..relationship import Relationship
 
 
-class Donation(Relationship):
+class RegisteredInterest(Relationship):
     pass

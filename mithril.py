@@ -133,14 +133,11 @@ def add_offshore_leak_connections_to_network(network, matches):
     return network
 
 
-def find_potential_donations_matches(json_path):
-    network = load_network(json_path)
-    return cross_referencing.find_potential_donations_matches(network)
+def find_potential_registered_interests_matches(network):
+    return cross_referencing.find_potential_registered_interests_matches(network)
 
 
-def add_donations_connections_to_network(json_path, matches):
-    network = load_network(json_path)
+def add_registered_interests_connections_to_network(network, matches):
+    network = cross_referencing.add_registered_interests_connections_to_network(matches=matches, network=network)
 
-    network = cross_referencing.add_donations_connections_to_network(matches=matches, network=network)
-
-    network.save_json(json_path)
+    return network
