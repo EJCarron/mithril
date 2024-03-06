@@ -1,12 +1,11 @@
 from .. import helpers
 import psycopg2
-import typesense
 from .. import typesense_client
 
 def connect_to_db():
     config = helpers.get_config()
 
-    conn = psycopg2.connect(database=config.database,
+    conn = psycopg2.connect(database=config.ol_database,
                             host=config.database_host,
                             user=config.database_user,
                             password=config.database_pw,

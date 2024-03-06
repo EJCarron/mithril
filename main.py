@@ -1,4 +1,7 @@
 import mithril
+from src.scripts.uk_electoral_commission.populate_db import populate_db
+
+populate_db()
 
 
 # configs = {'fuzzy_officer_table': 'officers_fuzzy',
@@ -20,10 +23,10 @@ import mithril
 #                                           save_neo4j=True, overwrite_neo4j=True, expand=1)
 #
 
-path = '/Users/edwardcarron/Desktop/chi_test/ashcroft_network.json'
-
-
-mithril.loadjsoncreategraph(path, True)
+# path = '/Users/edwardcarron/Desktop/chi_test/ashcroft_network.json'
+#
+#
+# mithril.loadjsoncreategraph(path, True)
 
 # matches = mithril.find_potential_offshore_leaks_matches(path)
 

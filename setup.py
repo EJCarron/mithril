@@ -12,7 +12,8 @@ setup(
                       'pandas~=2.0.3',
                       'thefuzz~=0.22.1',
                       'psycopg2-binary~=2.9.9',
-                      'typesense~=0.19.0'
+                      'typesense~=0.19.0',
+                      'sqlalchemy~=2.0.28'
                       ],
     entry_points={
         'console_scripts': [
