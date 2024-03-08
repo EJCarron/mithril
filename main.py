@@ -1,8 +1,11 @@
 import mithril
-from src.scripts.uk_electoral_commission.populate_db import populate_db
+from src.scripts.uk_electoral_commission.populate_db import full_populate_sequence
+from src.scripts.typesense_client import db_report
 
-populate_db()
+# db_report()
 
+
+full_populate_sequence()
 
 # configs = {'fuzzy_officer_table': 'officers_fuzzy',
 #               'fuzzy_address_table': 'addresses_fuzzy',

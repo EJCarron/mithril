@@ -98,7 +98,7 @@ class Network:
 
     @property
     def regulated_donees(self):
-        return self.get_nodes_of_type(node_type=node_factory.regulated_donee)
+        return self.get_nodes_of_type(node_type=node_factory.ec_regulated_donee)
 
     # Setters
 
@@ -167,7 +167,7 @@ class Network:
         self.add_node(ol_other, node_type=node_factory.ol_other)
 
     def add_regulated_donee(self, regulated_donee):
-        self.add_node(regulated_donee, node_type=node_factory.regulated_donee)
+        self.add_node(regulated_donee, node_type=node_factory.ec_regulated_donee)
 
     def add_ch_appointment(self, appointment):
         self.add_relationship(appointment, relationship_factory.ch_appointment)
@@ -175,8 +175,8 @@ class Network:
     def add_same_as(self, same_as_relationship):
         self.add_relationship(same_as_relationship, relationship_factory.same_as)
 
-    def add_registered_interest_relationship(self, registered_interest_relationship):
-        self.add_relationship(registered_interest_relationship, relationship_factory.registered_interest)
+    def add_electoral_commission_donation_relationship(self, electoral_commission_donation_relationship):
+        self.add_relationship(electoral_commission_donation_relationship, relationship_factory.ec_donation)
 
     @classmethod
     def start(cls, ch_officer_ids, ch_company_numbers, offshore_leaks_node_ids, network_name):
@@ -320,26 +320,26 @@ class Network:
             cypher += '\n {clause}'.format(clause=relationship.render_create_clause())
         return cypher
 
-    def create_registered_interest_relationship(self, parent_node_id, child_node_id, attributes):
+    def create_electoral_commission_donation_relationship(self, parent_node_id, child_node_id, attributes):
         parent_node = self.get_node(parent_node_id)
         child_node = self.get_node(child_node_id)
 
         if parent_node is None or child_node is None:
-            print('System Error: registered_interest relationship nodes aren\'t in network')
+            print('System Error: electoral_commission_donation relationship nodes aren\'t in network')
             return None
 
-        relationship = relationship_factory.registered_interest(parent_node_name=parent_node.unique_label,
-                                                                parent_id=parent_node.node_id,
-                                                                child_node_name=child_node.unique_label,
-                                                                child_id=child_node.node_id,
-                                                                **attributes
-                                                                )
+        relationship = relationship_factory.ec_donation(parent_node_name=parent_node.unique_label,
+                                                        parent_id=parent_node.node_id,
+                                                        child_node_name=child_node.unique_label,
+                                                        child_id=child_node.node_id,
+                                                        **attributes
+                                                        )
 
         if self.relationship_already_exists(new_relationship=relationship, existing_relationships=self.relationships):
             print('relationship already exists')
             return None
         else:
-            self.add_registered_interest_relationship(relationship)
+            self.add_electoral_commission_donation_relationship(relationship)
 
     def create_same_as_relationship(self, parent_node_id, child_node_id):
         parent_node = self.get_node(parent_node_id)

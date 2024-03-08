@@ -1,4 +1,5 @@
 import typesense
+import pprint
 
 
 def make_typesense_client():
@@ -42,6 +43,20 @@ def find_matches_grouped(search_dicts):
                 results.append(result)
 
     return results
+
+
+def db_report():
+    client = make_typesense_client()
+
+    collections = client.collections.retrieve()
+    for collection in collections:
+        pprint.pprint(collection)
+    for collection in collections:
+        print('---------------------------------------------------------')
+        name = collection['name'].upper()
+        docs = collection['num_documents']
+        print(f'{name}:  {docs}')
+
 
 
 def find_matches(search_dicts):

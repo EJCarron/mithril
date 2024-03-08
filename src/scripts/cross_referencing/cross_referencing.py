@@ -1,5 +1,5 @@
 from ..OffshoreLeaks import offshore_leaks_api
-from ..uk_electoral_commission import registered_interests_api
+from ..uk_electoral_commission import electoral_commission_api
 from src.objects.graph_objects.nodes import node_factory
 
 
@@ -11,15 +11,15 @@ def find_potential_connections_in_offshore_leaks_db(network):
     return potential_matches
 
 
-def find_potential_registered_interests_matches(network):
-    search_dicts = create_registered_interests_matches_search_dicts(network)
+def find_potential_electoral_commission_donation_matches(network):
+    search_dicts = create_relectoral_commission_donation_matches_search_dicts(network)
 
-    potential_matches = registered_interests_api.find_matches_grouped(search_dicts)
+    potential_matches = electoral_commission_api.find_matches_grouped(search_dicts)
 
     return potential_matches
 
 
-def add_registered_interests_connections_to_network(matches, network):
+def add_electoral_commission_donation_connections_to_network(matches, network):
     for match in matches:
         kwargs = {}
 
@@ -27,13 +27,13 @@ def add_registered_interests_connections_to_network(matches, network):
             new_key = key.replace(' ', '_').lower()
             kwargs[new_key] = value
 
-        node = node_factory.regulated_donee(name=kwargs['regulated_donee'])
+        node = node_factory.ec_regulated_donee(node_id=kwargs['regulated_donee_node_id'], name=kwargs['regulated_donee'])
 
         network.add_regulated_donee(node)
 
-        network.create_registered_interest_relationship(parent_node_id=match['info']['compare_node_id'],
-                                             child_node_id=node.node_id,
-                                             attributes=kwargs)
+        network.create_electoral_commission_donation_relationship(parent_node_id=match['info']['compare_node_id'],
+                                                                  child_node_id=node.node_id,
+                                                                  attributes=kwargs)
 
     return network
 
@@ -63,7 +63,7 @@ def add_offshore_leaks_connections_to_network(matches, network):
     return network
 
 
-def create_registered_interests_matches_search_dicts(network):
+def create_relectoral_commission_donation_matches_search_dicts(network):
     ch_companies = network.ch_companies.values()
     ch_officers = network.ch_officers.values()
 
@@ -72,8 +72,8 @@ def create_registered_interests_matches_search_dicts(network):
     search_dicts = []
 
     for node in nodes:
-        search_dicts.append(make_search_dict(query_string=node.name, query_by='Donor', collection='donations',
-                                             node_id=node.node_id, node_name=node.name, group_by='Donor'
+        search_dicts.append(make_search_dict(query_string=node.name, query_by='donor', collection='donations',
+                                             node_id=node.node_id, node_name=node.name, group_by='donor'
                                              ))
 
     return search_dicts

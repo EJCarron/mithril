@@ -1,6 +1,7 @@
 from .nodes import node_factory
 from .relationships import relationship_factory
 from src.scripts.OffshoreLeaks import offshore_leaks_api
+from src.scripts.uk_electoral_commission import electoral_commission_api
 
 
 def expand_node(node, existing_nodes):
@@ -10,9 +11,53 @@ def expand_node(node, existing_nodes):
         return expand_ch_company(node, existing_nodes)
     elif isinstance(node, node_factory.ol_node):
         return expand_ol_node(node, existing_nodes)
+    elif isinstance(node, node_factory.ec_node):
+        return expand_ec_node(node, existing_nodes)
     else:
         print('System ERROR haven\'t implement expand for ' + node.node_type)
         return None, None
+
+
+def expand_ec_node(node, existing_nodes):
+    print('expanding ElectoralCommission node ' + node.unique_label)
+    raw_relationships = electoral_commission_api.get_donations(node_id=node.node_id)
+
+    new_node_relationship_tuples = []
+
+    for raw_relationship in raw_relationships:
+        parent_node = None
+        child_node = None
+
+        if raw_relationship['regulated_donee_node_id'] == node.node_id:
+            related_node_db_id = raw_relationship['donor_node_id']
+            parent_node = node
+        else:
+            related_node_db_id = raw_relationship['regulated_donee_node_id']
+            child_node = node
+
+        if related_node_db_id in existing_nodes.keys():
+            related_node = existing_nodes[related_node_db_id]
+        else:
+            raw_node = electoral_commission_api.get_nodes([related_node_db_id])[0]
+            related_node = node_factory.node_dict[raw_node['node_type']](**raw_node)
+
+        if parent_node is None:
+            parent_node = related_node
+        else:
+            child_node = related_node
+
+        new_relationship = relationship_factory.ec_donation(parent_node_name=parent_node.unique_label,
+                                                            parent_id=parent_node.node_id,
+                                                            child_node_name=child_node.unique_label,
+                                                            child_id=child_node.node_id,
+                                                            **raw_relationship
+                                                            )
+
+        new_node_relationship_tuples.append((related_node, new_relationship))
+
+    node.expanded = True
+
+    return new_node_relationship_tuples
 
 
 def expand_ol_node(node, existing_nodes):
@@ -112,6 +157,3 @@ def expand_ch_officer(ch_officer, existing_nodes):
     ch_officer.expanded = True
 
     return new_company_appointment_tuples
-
-
-

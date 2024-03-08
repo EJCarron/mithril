@@ -137,11 +137,11 @@ def add_offshore_leak_connections_to_network(network, matches):
     return network
 
 
-def find_potential_registered_interests_matches(network):
-    return cross_referencing.find_potential_registered_interests_matches(network)
+def find_potential_electoral_commission_donation_matches(network):
+    return cross_referencing.find_potential_electoral_commission_donation_matches(network)
 
 
-def add_registered_interests_connections_to_network(network, matches):
-    network = cross_referencing.add_registered_interests_connections_to_network(matches=matches, network=network)
+def add_electoral_commission_donation_connections_to_network(network, matches):
+    network = cross_referencing.add_electoral_commission_donation_connections_to_network(matches=matches, network=network)
 
     return network

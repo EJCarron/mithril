@@ -6,7 +6,11 @@ from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_entity import
 from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_intermediary import OffshoreLeaksIntermediary
 from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_officer import OffshoreLeaksOfficer
 from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_other import OffshoreLeaksOther
-from src.objects.graph_objects.nodes.uk_electoral_commission.regulated_donee import RegulatedDonee
+from src.objects.graph_objects.nodes.uk_electoral_commission.electoral_commission_node import ElectoralCommissionNode
+from src.objects.graph_objects.nodes.uk_electoral_commission.electoral_commission_regulated_donee import\
+    ElectoralCommissionRegulatedDonee
+from src.objects.graph_objects.nodes.uk_electoral_commission.electoral_commission_donor import\
+    ElectoralCommissionDonor
 from .node import Node
 
 node_str = Node.__name__
@@ -18,7 +22,9 @@ ol_entity_str = OffshoreLeaksEntity.__name__
 ol_intermediary_str = OffshoreLeaksIntermediary.__name__
 ol_officer_str = OffshoreLeaksOfficer.__name__
 ol_other_str = OffshoreLeaksOther.__name__
-regulated_donee_str = RegulatedDonee.__name__
+ec_node_str = ElectoralCommissionNode.__name__
+ec_regulated_donee_str = ElectoralCommissionRegulatedDonee.__name__
+ec_donor_str = ElectoralCommissionDonor.__name__
 
 node = Node
 ch_officer = CompaniesHouseOfficer
@@ -29,7 +35,9 @@ ol_entity = OffshoreLeaksEntity
 ol_intermediary = OffshoreLeaksIntermediary
 ol_officer = OffshoreLeaksOfficer
 ol_other = OffshoreLeaksOther
-regulated_donee = RegulatedDonee
+ec_node = ElectoralCommissionNode
+ec_regulated_donee = ElectoralCommissionRegulatedDonee
+ec_donor = ElectoralCommissionDonor
 
 node_dict = {node_str: node,
              ch_officer_str: ch_officer,
@@ -40,7 +48,9 @@ node_dict = {node_str: node,
              ol_intermediary_str: ol_intermediary,
              ol_officer_str: ol_officer,
              ol_other_str: ol_other,
-             regulated_donee_str: regulated_donee
+             ec_node: ec_node_str,
+             ec_regulated_donee_str: ec_regulated_donee,
+             ec_donor_str: ec_donor
              }
 
 ol_list = [ol_address, ol_entity, ol_intermediary, ol_officer, ol_other]

@@ -127,60 +127,6 @@ def get_relationships(db_node_id):
     return nodes
 
 
-def clean_for_fuzz(name):
-    strip_strings = ['plc', 'ltd', 'limited', 'llp', 'co.', '.', ',', ':', ';', '(', ')']
-
-    name = name.lower()
-
-    for stripper in strip_strings:
-        name = name.replace(stripper, '')
-
-    name = name.strip()
-
-    return name
-
-
-# def render_fuzz_match_query(node_dicts):
-#     config = helpers.get_config()
-#
-#     searches = []
-#
-#     for node in node_dicts:
-#         node['fuzz_name'] = clean_for_fuzz(node['name'])
-#
-#         def render_search(node_type, node_name, fuzz_name, node_id, fuzz_threshold):
-#             return f"""
-#                 \n
-#                 insert into potentialMatches
-#                 SELECT '{node_type}', db_node_id , original_name, '{node_name}', '{node_id}',
-#                 levenshtein('{fuzz_name}', fuzz_name)
-#                 from {config.fuzzy_table}
-#                 where levenshtein('{fuzz_name}', fuzz_name) < {fuzz_threshold};
-#                 \n
-#                 """
-#
-#         searches.append(render_search(node_type=node['node_type'], node_name=node['fuzz_name'],
-#                                       node_id=node['node_id'],
-#                                       fuzz_threshold=3
-#                                       ))
-#
-#     search_statements = ''.join(searches)
-#
-#     query = """
-#         create temp table potentialMatches(node_type text,
-#         match_node_id text, match_node_name text, compare_node_name text, compare_node_id text, fuzz int);
-#
-#         {search_statements}
-#
-#         select * from potentialMatches order by fuzz;
-#
-#         drop table potentialMatches;
-#
-#         """.format(search_statements=search_statements)
-#
-#     return query
-
-
 def find_matches(search_dicts):
     return typesense_client.find_matches(search_dicts)
 
