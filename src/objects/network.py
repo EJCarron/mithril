@@ -56,6 +56,12 @@ class Network:
             print("Internal ERROR {0} node not in network".format(node_id))
             return None
 
+    def node_in_network(self, node_id):
+        if node_id in self.nodes.keys():
+            return True
+        else:
+            return False
+
     @property
     def ch_officers(self):
         return self.get_nodes_of_type(node_type=node_factory.ch_officer)

@@ -12,28 +12,29 @@ def find_potential_connections_in_offshore_leaks_db(network):
 
 
 def find_potential_electoral_commission_donation_matches(network):
-    search_dicts = create_relectoral_commission_donation_matches_search_dicts(network)
+    search_dicts = create_electoral_commission_donation_matches_search_dicts(network)
 
-    potential_matches = electoral_commission_api.find_matches_grouped(search_dicts)
+    potential_matches = electoral_commission_api.find_matches(search_dicts)
 
     return potential_matches
 
 
 def add_electoral_commission_donation_connections_to_network(matches, network):
+    new_node_ids = []
     for match in matches:
-        kwargs = {}
+        compare_node = network.get_node(match['info']['compare_node_id'])
 
-        for key, value in match['values'].items():
-            new_key = key.replace(' ', '_').lower()
-            kwargs[new_key] = value
+        if network.node_in_network(match['values']['node_id']):
+            new_ec_node = network.get_node(match['values']['node_id'])
+        else:
+            new_ec_node_dict = electoral_commission_api.get_donors(node_ids=[match['values']['node_id']])[0]
+            new_ec_node = node_factory.node_dict[new_ec_node_dict['node_type']](**new_ec_node_dict)
+            network.add_node(new_ec_node, node_factory.ec_node)
 
-        node = node_factory.ec_regulated_donee(node_id=kwargs['regulated_donee_node_id'], name=kwargs['regulated_donee'])
+        network.create_same_as_relationship(parent_node_id=compare_node.node_id, child_node_id=new_ec_node.node_id)
+        new_node_ids.append(new_ec_node.node_id)
 
-        network.add_regulated_donee(node)
-
-        network.create_electoral_commission_donation_relationship(parent_node_id=match['info']['compare_node_id'],
-                                                                  child_node_id=node.node_id,
-                                                                  attributes=kwargs)
+    network.expand_network(target_node_ids=new_node_ids)
 
     return network
 
@@ -63,24 +64,23 @@ def add_offshore_leaks_connections_to_network(matches, network):
     return network
 
 
-def create_relectoral_commission_donation_matches_search_dicts(network):
-    ch_companies = network.ch_companies.values()
-    ch_officers = network.ch_officers.values()
-
-    nodes = list(ch_officers) + list(ch_companies)
+def create_electoral_commission_donation_matches_search_dicts(network):
+    nodes = network.get_nodes_of_type(node_factory.ec_node, inverse=True)
 
     search_dicts = []
 
-    for node in nodes:
-        search_dicts.append(make_search_dict(query_string=node.name, query_by='donor', collection='donations',
-                                             node_id=node.node_id, node_name=node.name, group_by='donor'
+    for node in nodes.values():
+        search_dicts.append(make_search_dict(query_string=node.name, query_by='name', collection='donors',
+                                             node_id=node.node_id, node_name=node.name
+                                             ))
+        search_dicts.append(make_search_dict(query_string=node.name, query_by='name', collection='regulated_donees',
+                                             node_id=node.node_id, node_name=node.name
                                              ))
 
     return search_dicts
 
 
 def make_search_dict(query_string, query_by, collection, node_id, node_name, group_by=None):
-
     search_dict = {
         'params': make_typesense_search_parameters(query_string=query_string, query_by=query_by, group_by=group_by),
         'collection': collection,

@@ -85,6 +85,6 @@ def get_donations(node_id):
     return nodes
 
 
-def find_matches_grouped(search_dicts):
-    return typesense_client.find_matches_grouped(search_dicts)
+def find_matches(search_dicts):
+    return typesense_client.find_matches(search_dicts)
 
