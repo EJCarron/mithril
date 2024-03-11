@@ -5,6 +5,7 @@ import json
 from .. import helpers
 
 requests_counter = 0
+search_items_per_page = 10
 
 
 def requests_check():
@@ -17,6 +18,61 @@ def requests_check():
         requests_count = 0
     else:
         requests_counter += 1
+
+
+def make_search_params(query, page_number):
+    return {'q': query,
+            'items_per_page': search_items_per_page,
+            'start_index': ((page_number - 1) * search_items_per_page)
+            }
+
+
+def search(url, params):
+    config = helpers.get_config()
+
+    response = requests.get(url=url, headers=config.header, params=params)
+
+    print(url)
+
+    if response.status_code == 401:
+        q = params['q']
+        print(f'bad search request: {q}')
+        return None
+
+    result = json.loads(response.text)
+
+    items = []
+
+    for item in result['items']:
+        if item['kind'] == 'searchresults#company':
+            item['kind'] = 'CompaniesHouseCompany'
+            item['node_id'] = item['company_number']
+        elif item['kind'] == 'searchresults#officer':
+            item['kind'] = 'CompaniesHouseOfficer'
+            item['node_id'] = item['links']['self'].split('/')[2]
+        else:
+            item['kind'] = 'ERROR TYPE NOT ACCOUNTED FOR'
+        items.append(item)
+
+    return items
+
+
+def search_all(query, page_number):
+    url = 'https://api.company-information.service.gov.uk/search'
+    params = make_search_params(query, page_number)
+    return search(url, params)
+
+
+def search_companies(query, page_number):
+    url = 'https://api.company-information.service.gov.uk/search/companies'
+    params = make_search_params(query, page_number)
+    return search(url, params)
+
+
+def search_officers(query, page_number):
+    url = 'https://api.company-information.service.gov.uk/search/officers'
+    params = make_search_params(query, page_number)
+    return search(url, params)
 
 
 def get_officer(officer_id):

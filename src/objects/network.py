@@ -49,6 +49,9 @@ class Network:
         else:
             return found_relationships
 
+    def get_same_as_relationships(self):
+        return self.get_relationships_of_type(relationship_factory.same_as)
+
     def get_node(self, node_id):
         if node_id in self.nodes.keys():
             return self.nodes[node_id]

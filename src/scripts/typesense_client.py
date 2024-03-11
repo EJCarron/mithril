@@ -58,6 +58,9 @@ def db_report():
         print(f'{name}:  {docs}')
 
 
+def sort_func(e):
+    return e['info']['score']
+
 
 def find_matches(search_dicts):
     client = make_typesense_client()
@@ -65,17 +68,27 @@ def find_matches(search_dicts):
     results = []
 
     for search_dict in search_dicts:
+        q = search_dict['params']['q']
+        collection = search_dict['collection']
+
+        print(f'matching {q} against {collection}')
         response = search_typesense_db(client=client, search=search_dict['params'],
                                        collection=search_dict['collection'])
         if response is not None:
 
             for hit in response['hits']:
-                result = {'values': hit['document'], 'info': {}}
-                result['info']['collection'] = search_dict['collection']
-                result['info']['compare_node_id'] = search_dict['node_id']
-                result['info']['compare_node_name'] = search_dict['node_name']
-                result['info']['matched_to'] = search_dict['params']['q']
-                result['info']['searched_by'] = search_dict['params']['query_by']
+                hit['text_match_info']['score'] = int(hit['text_match_info']['score'])
+
+                result = {'values': hit['document'], 'info': search_dict}
+                result['info']['score'] = hit['text_match']
                 results.append(result)
+
+    results.sort(key=sort_func, reverse=True)
+
+    result_counter = 0
+
+    for result in results:
+        result['values']['id'] = str(result_counter)
+        result_counter += 1
 
     return results

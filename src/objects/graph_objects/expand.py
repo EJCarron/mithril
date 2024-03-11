@@ -30,10 +30,10 @@ def expand_ec_node(node, existing_nodes):
 
         if raw_relationship['regulated_donee_node_id'] == node.node_id:
             related_node_db_id = raw_relationship['donor_node_id']
-            parent_node = node
+            child_node = node
         else:
             related_node_db_id = raw_relationship['regulated_donee_node_id']
-            child_node = node
+            parent_node = node
 
         if related_node_db_id in existing_nodes.keys():
             related_node = existing_nodes[related_node_db_id]
@@ -41,10 +41,10 @@ def expand_ec_node(node, existing_nodes):
             raw_node = electoral_commission_api.get_nodes([related_node_db_id])[0]
             related_node = node_factory.node_dict[raw_node['node_type']](**raw_node)
 
-        if parent_node is None:
-            parent_node = related_node
-        else:
+        if child_node is None:
             child_node = related_node
+        else:
+            parent_node = related_node
 
         new_relationship = relationship_factory.ec_donation(parent_node_name=parent_node.unique_label,
                                                             parent_id=parent_node.node_id,

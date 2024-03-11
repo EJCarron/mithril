@@ -11,8 +11,8 @@ def find_potential_connections_in_offshore_leaks_db(network):
     return potential_matches
 
 
-def find_potential_electoral_commission_donation_matches(network):
-    search_dicts = create_electoral_commission_donation_matches_search_dicts(network)
+def find_potential_electoral_commission_donation_matches(network, drop_tokens_threshold):
+    search_dicts = create_electoral_commission_donation_matches_search_dicts(network, drop_tokens_threshold)
 
     potential_matches = electoral_commission_api.find_matches(search_dicts)
 
@@ -22,12 +22,12 @@ def find_potential_electoral_commission_donation_matches(network):
 def add_electoral_commission_donation_connections_to_network(matches, network):
     new_node_ids = []
     for match in matches:
-        compare_node = network.get_node(match['info']['compare_node_id'])
+        compare_node = network.get_node(match['info']['node_id'])
 
         if network.node_in_network(match['values']['node_id']):
             new_ec_node = network.get_node(match['values']['node_id'])
         else:
-            new_ec_node_dict = electoral_commission_api.get_donors(node_ids=[match['values']['node_id']])[0]
+            new_ec_node_dict = electoral_commission_api.get_nodes(node_ids=[match['values']['node_id']])[0]
             new_ec_node = node_factory.node_dict[new_ec_node_dict['node_type']](**new_ec_node_dict)
             network.add_node(new_ec_node, node_factory.ec_node)
 
@@ -64,38 +64,47 @@ def add_offshore_leaks_connections_to_network(matches, network):
     return network
 
 
-def create_electoral_commission_donation_matches_search_dicts(network):
+def create_electoral_commission_donation_matches_search_dicts(network, drop_tokens_threshold):
     nodes = network.get_nodes_of_type(node_factory.ec_node, inverse=True)
 
     search_dicts = []
 
     for node in nodes.values():
         search_dicts.append(make_search_dict(query_string=node.name, query_by='name', collection='donors',
-                                             node_id=node.node_id, node_name=node.name
+                                             node_id=node.node_id, node_name=node.name, node_type=node.node_type,
+                                             drop_tokens_threshold=drop_tokens_threshold
                                              ))
         search_dicts.append(make_search_dict(query_string=node.name, query_by='name', collection='regulated_donees',
-                                             node_id=node.node_id, node_name=node.name
+                                             node_id=node.node_id, node_name=node.name, node_type=node.node_type,
+                                             drop_tokens_threshold=drop_tokens_threshold
                                              ))
 
     return search_dicts
 
 
-def make_search_dict(query_string, query_by, collection, node_id, node_name, group_by=None):
+def make_search_dict(query_string, query_by, collection, node_id, node_name, node_type, group_by=None,
+                     drop_tokens_threshold=None):
     search_dict = {
-        'params': make_typesense_search_parameters(query_string=query_string, query_by=query_by, group_by=group_by),
+        'params': make_typesense_search_parameters(query_string=query_string, query_by=query_by, group_by=group_by,
+                                                   drop_tokens_threshold=drop_tokens_threshold),
         'collection': collection,
         'node_id': node_id,
         'node_name': node_name,
+        'node_type': node_type
     }
 
     return search_dict
 
 
-def make_typesense_search_parameters(query_string, query_by, group_by=None):
+def make_typesense_search_parameters(query_string, query_by, group_by=None, drop_tokens_threshold=None):
     search_parameters = {
         'q': f'{query_string}',
         'query_by': f'{query_by}'
+
     }
+
+    if drop_tokens_threshold is not None:
+        search_parameters['drop_tokens_threshold'] = drop_tokens_threshold
 
     if group_by is not None:
         search_parameters['group_by'] = group_by
@@ -114,7 +123,7 @@ def create_offshore_leaks_matches_search_dicts(network):
     def make_search_by_name_dict(node, _collection):
         search_dicts.append(
             make_search_dict(query_string=node.name, query_by='name',
-                             collection=_collection, node_id=node.node_id, node_name=node.name
+                             collection=_collection, node_id=node.node_id, node_name=node.name, node_type=node.node_type
                              ))
 
     for ch_company in ch_companies.values():
@@ -123,7 +132,8 @@ def create_offshore_leaks_matches_search_dicts(network):
 
         search_dicts.append(
             make_search_dict(query_string=ch_company.address, query_by='address',
-                             collection='addresses', node_id=ch_company.node_id, node_name=ch_company.name
+                             collection='addresses', node_id=ch_company.node_id, node_name=ch_company.name,
+                             node_type=ch_company.node_type
                              ))
 
     for ch_officer in ch_officers.values():

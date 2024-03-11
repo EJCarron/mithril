@@ -4,6 +4,7 @@ import click
 from src.scripts import save_network
 import sys
 from src.scripts.cross_referencing import cross_referencing
+from src.scripts.companies_house import companies_house_api
 
 
 def setconfig(**kwargs):
@@ -28,6 +29,19 @@ def make_network_from_dict(network_dict):
 def expand_network(network, target_node_ids=None):
     network.expand_network(target_node_ids)
     return network
+
+
+def companies_house_search(query, page_number, search_type=None):
+    if search_type is None:
+        return companies_house_api.search_all(query, page_number)
+    elif search_type == 'company':
+        return companies_house_api.search_companies(query, page_number)
+    elif search_type == 'officer':
+        return companies_house_api.search_officers(query, page_number)
+    else:
+        print(f'invalid search type {search_type}')
+        return None
+
 
 def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None,
                   save_csvs_path='',
@@ -137,11 +151,12 @@ def add_offshore_leak_connections_to_network(network, matches):
     return network
 
 
-def find_potential_electoral_commission_donation_matches(network):
-    return cross_referencing.find_potential_electoral_commission_donation_matches(network)
+def find_potential_electoral_commission_donation_matches(network, drop_tokens_threshold):
+    return cross_referencing.find_potential_electoral_commission_donation_matches(network, drop_tokens_threshold)
 
 
 def add_electoral_commission_donation_connections_to_network(network, matches):
-    network = cross_referencing.add_electoral_commission_donation_connections_to_network(matches=matches, network=network)
+    network = cross_referencing.add_electoral_commission_donation_connections_to_network(matches=matches,
+                                                                                         network=network)
 
     return network

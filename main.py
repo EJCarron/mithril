@@ -1,11 +1,139 @@
 import mithril
 from src.scripts.uk_electoral_commission.populate_db import full_populate_sequence
 from src.scripts.typesense_client import db_report
+import json
+import pprint
 
 # db_report()
 
+gwpf_network = mithril.load_network('/Users/edwardcarron/Desktop/chi_test/gwpf.json')
 
-full_populate_sequence()
+# gwpf_network.expand_network()
+#
+# n_j = gwpf_network.to_json()
+#
+# with open('/Users/edwardcarron/Desktop/chi_test/gwpf.json', 'w') as w:
+#     w.write(n_j)
+
+hand_matched_network = mithril.load_network('/Users/edwardcarron/code/ceramite/data/gwpf.json')
+
+same_as_relationships = hand_matched_network.get_same_as_relationships()
+
+# zero_drops_matches = mithril.find_potential_electoral_commission_donation_matches(gwpf_network, 0)
+None_drops_matches = mithril.find_potential_electoral_commission_donation_matches(gwpf_network, None)
+
+
+def sort_func(e):
+    return e['info']['match_info']['score']
+
+
+None_drops_matches.sort(key=sort_func, reverse=True)
+
+
+hand_picked_matches = []
+rejected_matches = []
+
+example = []
+
+for match in None_drops_matches:
+    hand_picked = False
+    for same_as in same_as_relationships:
+        if match['info']['compare_node_id'] == same_as.parent_id and match['values']['node_id'] == same_as.child_id:
+            hand_picked_matches.append(match)
+            hand_picked = True
+            match['picked'] = True
+            break
+
+    if not hand_picked:
+        match['picked'] = False
+
+    example.append({'query_str': match['info']['matched_to'], 'matched_str':match['values']['name'],
+                    'True Match':match['picked']})
+
+
+no_hit_counter = 0
+
+for match in example:
+    if match['True Match']:
+        if no_hit_counter > 0:
+            print(f'{no_hit_counter} misses in a row')
+            no_hit_counter = 0
+        print('HIT')
+        pprint.pprint(match)
+    else:
+        no_hit_counter +=1
+
+print(f'ends with {no_hit_counter} misses in a row')
+
+
+# pprint.pprint(example)
+
+None_drops_matches
+
+
+
+
+
+
+
+
+
+
+
+def analise_matches(matches):
+    stats = {
+        '1_token_matched': 0,
+        '0_token_matched': 0,
+        '2_token_matched': 0,
+        '3_token_matched': 0,
+        'more_token_matched': 0,
+        'min_score': None,
+        'max_score': 0,
+        'avg_score': 0,
+    }
+
+    total_score = 0
+
+    for match in matches:
+        match_info = match['info']['match_info']
+        # match_info['score'] = int(match_info['score'])
+
+        if match_info['tokens_matched'] == 0:
+            stats['0_token_matched'] += 1
+        elif match_info['tokens_matched'] == 1:
+            stats['1_token_matched'] += 1
+        elif match_info['tokens_matched'] == 2:
+            stats['2_token_matched'] += 1
+        elif match_info['tokens_matched'] == 3:
+            stats['3_token_matched'] += 1
+        else:
+            stats['more_token_matched'] += 1
+
+        if stats['min_score'] is None:
+            stats['min_score'] = match_info['score']
+        elif match_info['score'] < stats['min_score']:
+            stats['min_score'] = match_info['score']
+
+        if match_info['score'] > stats['max_score']:
+            stats['max_score'] = match_info['score']
+
+        total_score += match_info['score']
+
+    stats['avg_score'] = int(total_score / len(matches))
+
+    return stats
+
+
+hand_picked_stats = analise_matches(hand_picked_matches)
+rejected_matches = analise_matches(rejected_matches)
+
+gwpf_network
+
+
+
+
+
+
 
 # configs = {'fuzzy_officer_table': 'officers_fuzzy',
 #               'fuzzy_address_table': 'addresses_fuzzy',
