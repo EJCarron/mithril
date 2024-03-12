@@ -34,5 +34,14 @@ class CompaniesHouseCompany(Node):
 
         return cls.from_api_result(raw_result)
 
+    @classmethod
+    def batch_init(cls, node_ids):
+        nodes = []
+
+        for node_id in node_ids:
+            nodes.append(cls.init_from_company_number(node_id))
+
+        return nodes
+
     def get_officer_ids(self):
         return companies_house_api.get_company_officer_ids(self.node_id)

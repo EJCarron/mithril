@@ -29,6 +29,15 @@ class CompaniesHouseOfficer(Node):
 
         return new_officer
 
+    @classmethod
+    def batch_init(cls, node_ids):
+        nodes = []
+
+        for node_id in node_ids:
+            nodes.append(cls.init_from_id(node_id))
+
+        return nodes
+
     def get_item_from_company_number(self, company_number):
         found_item = None
 

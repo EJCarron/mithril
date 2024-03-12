@@ -28,6 +28,12 @@ class Node(GraphObject):
 
         return clause_string
 
+    @classmethod
+    def batch_init(cls, node_ids):
+        print('ERROR batch_init not implemented for ' + type(cls).__name__)
+
+
+
     def expand(self):
         print('expand not implemented')
         return None

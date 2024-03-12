@@ -47,11 +47,15 @@ def search(url, params):
         if item['kind'] == 'searchresults#company':
             item['kind'] = 'CompaniesHouseCompany'
             item['node_id'] = item['company_number']
+            item['name'] = item['title']
         elif item['kind'] == 'searchresults#officer':
             item['kind'] = 'CompaniesHouseOfficer'
             item['node_id'] = item['links']['self'].split('/')[2]
+            item['name'] = item['title']
         else:
             item['kind'] = 'ERROR TYPE NOT ACCOUNTED FOR'
+            item['node_id'] = 'ERROR TYPE NOT ACCOUNTED FOR'
+            item['name'] = 'ERROR TYPE NOT ACCOUNTED FOR'
         items.append(item)
 
     return items

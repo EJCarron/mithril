@@ -43,18 +43,14 @@ def companies_house_search(query, page_number, search_type=None):
         return None
 
 
-def createnetwork(ch_officer_ids=None, ch_company_numbers=None, ol_node_ids=None,
+def createnetwork(core_nodes,
                   save_csvs_path='',
                   save_xlsx_path='', save_neo4j=False, overwrite_neo4j=False, same_as=None, expand=0, network_name=''):
     config = helpers.check_and_init_config()
 
-    ch_officer_ids = [] if ch_officer_ids is None else ch_officer_ids
-    ch_company_numbers = [] if ch_company_numbers is None else ch_company_numbers
-    ol_node_ids = [] if ol_node_ids is None else ol_node_ids
     same_as = [] if same_as is None else same_as
 
-    network = Network.start(ch_officer_ids=ch_officer_ids, ch_company_numbers=ch_company_numbers,
-                            offshore_leaks_node_ids=ol_node_ids, network_name=network_name)
+    network = Network.start(core_nodes, network_name=network_name)
 
     create_same_as_relationships(same_as, network)
 

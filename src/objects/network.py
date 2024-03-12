@@ -188,26 +188,19 @@ class Network:
         self.add_relationship(electoral_commission_donation_relationship, relationship_factory.ec_donation)
 
     @classmethod
-    def start(cls, ch_officer_ids, ch_company_numbers, offshore_leaks_node_ids, network_name):
+    def start(cls, core_nodes, network_name):
+
+        nodes_by_type = {}
+
+        for node_instructions in core_nodes:
+            if node_instructions['node_type'] not in nodes_by_type.keys():
+                nodes_by_type[node_instructions['node_type']] = []
+            nodes_by_type[node_instructions['node_type']].append(node_instructions['node_id'])
 
         nodes = []
 
-        if len(ch_officer_ids) > 0:
-            print('Getting core Companies House Officers')
-            core_ch_officers = [node_factory.ch_officer.init_from_id(
-                ch_officer_id) for ch_officer_id in ch_officer_ids]
-            nodes += core_ch_officers
-
-        if len(ch_company_numbers) > 0:
-            print('Getting core Companies House Companies')
-            core_ch_companies = [node_factory.ch_company.init_from_company_number(
-                ch_company_number) for ch_company_number in ch_company_numbers]
-            nodes += core_ch_companies
-
-        if len(offshore_leaks_node_ids) > 0:
-            print('Getting core Offshore Leaks nodes')
-            core_ol_nodes = init_offshore_leaks_nodes.init_nodes_from_ids(node_ids=offshore_leaks_node_ids)
-            nodes += core_ol_nodes
+        for node_type, node_ids in nodes_by_type.items():
+            nodes += node_factory.node_dict[node_type].batch_init(node_ids)
 
         nodes_dict = {node.node_id: node for node in nodes}
 
