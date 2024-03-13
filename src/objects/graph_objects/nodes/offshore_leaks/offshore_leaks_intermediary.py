@@ -6,3 +6,8 @@ class OffshoreLeaksIntermediary(OffshoreLeaksNode):
         start_label = self.name.replace(' ', '_')
 
         return start_label + str(self.db_node_id)
+
+    @property
+    def events(self):
+        return []
+

@@ -5,6 +5,7 @@ from src.scripts import save_network
 import sys
 from src.scripts.cross_referencing import cross_referencing
 from src.scripts.companies_house import companies_house_api
+from src.scripts.timeline import timeline as tl
 
 
 def setconfig(**kwargs):
@@ -41,6 +42,11 @@ def companies_house_search(query, page_number, search_type=None):
     else:
         print(f'invalid search type {search_type}')
         return None
+
+
+def export_timeline(network, export_path):
+    timeline = tl.make_timeline(network)
+    tl.export_time_line_to_xlsx(timeline, export_path)
 
 
 def createnetwork(core_nodes,

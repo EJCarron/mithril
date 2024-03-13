@@ -6,9 +6,25 @@ class CompaniesHouseOfficer(Node):
 
     def __init__(self, **kwargs):
         super(CompaniesHouseOfficer, self).__init__()
+        self.date_of_birth = {}
         self.name = None
         self.items = None
         self.__dict__.update(kwargs)
+
+    @property
+    def events(self):
+        events = []
+
+        if 'date_of_birth' in self.__dict__.keys():
+            if self.date_of_birth != {}:
+
+                officer_born_event = {'event': f'{self.name} was born',
+                                      'month': self.date_of_birth.get('month', None),
+                                      'year': self.date_of_birth.get('year', None)
+                                      }
+                events.append(officer_born_event)
+
+        return events
 
     @classmethod
     def init_from_id(cls, ch_officer_id):

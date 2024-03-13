@@ -6,9 +6,34 @@ class CompaniesHouseCompany(Node):
 
     def __init__(self, **kwargs):
         super(CompaniesHouseCompany, self).__init__()
+        self.registered_office_address = None
         self.node_id = None
         self.name = None
         self.__dict__.update(kwargs)
+
+    @property
+    def events(self):
+        events = []
+
+        if 'date_of_creation' in self.__dict__.keys():
+            date_split = self.date_of_creation.split('-')
+
+            events.append({'event': f'{self.name} was registered with Companies House',
+                           'day': int(date_split[2]),
+                           'month': int(date_split[1]),
+                           'year': int(date_split[0])
+                           })
+
+        if 'date_of_cessation' in self.__dict__.keys():
+            date_split = self.date_of_cessation.split('-')
+
+            events.append({'event': f'{self.name} was removed from the Companies House register',
+                           'day': date_split[2],
+                           'month': date_split[1],
+                           'year': date_split[0]
+                           })
+
+        return events
 
     @property
     def address(self):

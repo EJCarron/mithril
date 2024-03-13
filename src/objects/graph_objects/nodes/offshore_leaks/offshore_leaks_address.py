@@ -13,3 +13,7 @@ class OffshoreLeaksAddress(OffshoreLeaksNode):
 
         return start_label + str(self.db_node_id)
 
+    @property
+    def events(self):
+        return []
+

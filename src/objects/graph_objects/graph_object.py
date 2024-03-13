@@ -57,6 +57,9 @@ class GraphObject:
         else:
             return '{attr}: null'.format(attr=clean_attr, value=value)
 
+    @property
+    def events(self):
+        return []
 
 def flatten_dict(d: MutableMapping, parent_key: str = '', sep: str = '_') -> MutableMapping:
     items = []

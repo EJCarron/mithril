@@ -59,7 +59,7 @@ def add_offshore_leaks_connections_to_network(matches, network):
             continue
         network.add_ol_node(node)
 
-        network.create_same_as_relationship(parent_node_id=match['info']['compare_node_id'], child_node_id=node.node_id)
+        network.create_same_as_relationship(parent_node_id=match['info']['node_id'], child_node_id=node.node_id)
 
     return network
 

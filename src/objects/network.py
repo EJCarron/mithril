@@ -3,7 +3,6 @@ import sys
 from .graph_objects.nodes import node_factory
 from .graph_objects.relationships import relationship_factory
 from .graph_objects import expand
-from .graph_objects.nodes.offshore_leaks import init_offshore_leaks_nodes
 import pandas as pd
 import uuid
 
