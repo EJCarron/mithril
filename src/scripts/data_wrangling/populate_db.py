@@ -110,6 +110,15 @@ def create_table(db_name, table_name, cols):
     conn.commit()
     conn.close()
 
+def render_create_table_instructions(cols):
+    text_type = 'text'
+    big_int = 'numeric'
+    node_id = 'node_id'
+
+    col_instructions = ', '.join([f'{col} {big_int if node_id in col else text_type}' for col in cols])
+    dtypes = {col: Numeric() if node_id in col else Text() for col in cols}
+
+    return col_instructions, dtypes
 
 def populate_postgres_db(dfs, db_name):
     config = helpers.get_config()
@@ -123,26 +132,11 @@ def populate_postgres_db(dfs, db_name):
             psycopg2.extensions.AsIs('NULL'))
         cols = df.columns.to_list()
 
-        text_type = 'text'
-        big_int = 'numeric'
-        node_id = 'node_id'
-
-        col_instructions = ', '.join([f'{col} {big_int if node_id in col else text_type}' for col in cols])
-        dtypes = {col: Numeric() if node_id in col else Text() for col in cols}
+        col_instructions, dtypes = render_create_table_instructions(cols)
 
         create_table(db_name=db_name, table_name=table_name, cols=col_instructions)
 
         df.to_sql(table_name, con=conn, if_exists='replace', index=False, dtype=dtypes)
-
-
-def split_df_to_size(df):
-    df_size = df.memory_usage(index=True).sum()
-
-    num_splits = maths.ceil(df_size / 30000000)
-
-    split_dfs = np.array_split(df, num_splits)
-
-    return split_dfs
 
 
 def clear_old_collections(data, client):
@@ -153,15 +147,6 @@ def clear_old_collections(data, client):
     for collection in collections:
         if collection['name'] in collection_names:
             client.collections[collection['name']].delete()
-
-
-def jsonline_stringify(list_of_objects):
-    stringify = ''
-
-    for obj in list_of_objects:
-        stringify += json.dumps(obj) + '\n'
-
-    return stringify
 
 
 def fetchall_to_nodes(cursor):
@@ -200,10 +185,12 @@ def create_temp_table_with_latest_data(cur, table_name, df):
     data_dicts = df.to_dict('records')
     cols = [col for col in data_dicts[0].keys()]
 
-    cols_for_create = ', '.join([f'{col} text' for col in cols])
+    col_instructions, dtypes = render_create_table_instructions(cols)
+
+
     cols_for_insert = ', '.join(cols)
 
-    cur.execute(f'create temp table {table_name} ({cols_for_create});')
+    cur.execute(f'create temp table {table_name} ({col_instructions});')
 
     query = f"""
         insert into {table_name} ({cols_for_insert}) values %s;
@@ -222,18 +209,9 @@ def populate_typesense(data):
     clear_old_collections(data, client)
 
     for datum in data:
-
         schema = datum['schema']
-        dfs = split_df_to_size(datum['df'])
-
-        print(schema['name'])
-
         client.collections.create(schema)
-
-        for df in dfs:
-            df.fillna('NULL', inplace=True)
-            client.collections[schema['name']].documents.import_(
-                jsonline_stringify(df.to_dict('records')).encode('utf-8'))
+        typesense_client.import_df(client=client, df=datum['df'], collection=schema['name'])
 
 
 def update_tables(new_items_dfs, module_database):
@@ -262,12 +240,7 @@ def update_typesense(new_nodes_dfs):
 
     for collection, df in new_nodes_dfs.items():
         if len(df) > 0:
-            df = df.fillna(
-                'NULL')
-
-            documents = df.to_dict('records')
-
-            client.collections[collection].documents.import_(jsonline_stringify(documents).encode('utf-8'))
+            typesense_client.import_df(client=client, df=df, collection=collection)
 
 
 # ---------------------------------------------- ELECTORAL COMMISSION --------------------------------------------
@@ -399,8 +372,14 @@ def electoral_commission_find_diffs():
     new_donations_df, new_regulated_donees_df, new_donors_df = electoral_commission_find_node_diffs(
         new_donations_without_ids_df)
 
+    print(f'''
+        {len(new_donations_df)} new donations
+        {len(new_donors_df)} new donors
+        {len(new_regulated_donees_df)} new regulated donees
+''')
+
     return {'regulated_donees': new_regulated_donees_df, 'donors': new_donors_df}, \
-           {'donations': pd.DataFrame(new_donations_df)}
+           {'donations': new_donations_df}
 
 
 # ---------------------------------------------- ELECTORAL COMMISSION --------------------------------------------
@@ -494,7 +473,10 @@ def offshore_leaks_find_diffs():
         cursor, new_rows = find_new_rows(cursor=cursor, cols=cols, temp_table_name=temp_table_name,
                                          table_name=table_name)
 
-        new_rows_dict[table_name] = new_rows
+        if len(new_rows) > 0:
+            new_rows_dict[table_name] = pd.DataFrame(new_rows)
+
+        print(f'{len(new_rows)} new {table_name}')
 
         cursor.execute(f'drop table {temp_table_name}')
 
@@ -530,9 +512,13 @@ def update_sequence():
     config = helpers.get_config()
 
     def each_module(module_specific_diffs, module_db):
+        print('finding diffs')
         new_nodes_dfs, new_relationships_dfs = module_specific_diffs()
         update_tables({**new_nodes_dfs, **new_relationships_dfs}, module_db)
         update_typesense(new_nodes_dfs)
 
+    print('Updating DataBases')
+    print('Electoral Commission')
     each_module(electoral_commission_find_diffs, config.roi_database)
+    print('Offshore Leaks')
     each_module(offshore_leaks_find_diffs, config.ol_database)

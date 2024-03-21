@@ -1,5 +1,9 @@
 import typesense
 import pprint
+import json
+import numpy as np
+import pandas
+import math as maths
 
 
 def make_typesense_client():
@@ -56,6 +60,34 @@ def db_report():
         name = collection['name'].upper()
         docs = collection['num_documents']
         print(f'{name}:  {docs}')
+
+
+def jsonline_stringify(list_of_objects):
+    stringify = ''
+
+    for obj in list_of_objects:
+        stringify += json.dumps(obj) + '\n'
+
+    return stringify
+
+
+def split_df_to_size(df):
+    df_size = df.memory_usage(index=True).sum()
+
+    num_splits = maths.ceil(df_size / 30000000)
+
+    split_dfs = np.array_split(df, num_splits)
+
+    return split_dfs
+
+
+def import_df(client, df, collection):
+    dfs = split_df_to_size(df)
+    print(collection)
+    for df in dfs:
+        df.fillna('NULL', inplace=True)
+        client.collections[collection].documents.import_(
+            jsonline_stringify(df.to_dict('records')).encode('utf-8'))
 
 
 def find_matches(search_dicts):
