@@ -43,28 +43,6 @@ def execute_get_nodes_query(query, node_type):
     return nodes
 
 
-# def execute_get_matches_query(query):
-#     conn = connect_to_db()
-#     cursor = conn.cursor()
-#     cursor.execute(query)
-#     raw_results = cursor.fetchall()
-#     column_names = [desc[0] for desc in cursor.description]
-#
-#     if raw_results is None:
-#         return None
-#
-#     matches = []
-#
-#     for raw_result in raw_results:
-#         result = {}
-#         for i in range(len(column_names)):
-#             result[column_names[i]] = raw_result[i]
-#
-#         matches.append(result)
-#
-#     return matches
-
-
 def get_nodes_of_type(node_ids, table, node_type):
     query = render_select_nodes_query(table=table, node_ids=node_ids)
     nodes = execute_get_nodes_query(query, node_type)

@@ -1,12 +1,16 @@
-import mithril
-from src.scripts.timeline import timeline as tl
-import pprint
+from src.scripts.data_wrangling import populate_db
 
-net = mithril.load_network('/Users/edwardcarron/code/ceramite/data/ashcroft.json')
-net
 
-timeline = tl.make_timeline(net)
-tl.export_time_line_to_xlsx(timeline, '/Users/edwardcarron/Desktop/chi_test/timeline.xlsx')
+
+populate_db.full_populate_sequence()
+# update_sequence()
+
+
+# net = mithril.load_network('/Users/edwardcarron/code/ceramite/data/ashcroft.json')
+# net
+#
+# timeline = tl.make_timeline(net)
+# tl.export_time_line_to_xlsx(timeline, '/Users/edwardcarron/Desktop/chi_test/timeline.xlsx')
 
 
 

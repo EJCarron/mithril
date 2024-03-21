@@ -58,10 +58,6 @@ def db_report():
         print(f'{name}:  {docs}')
 
 
-def sort_func(e):
-    return e['info']['score']
-
-
 def find_matches(search_dicts):
     client = make_typesense_client()
 
@@ -82,6 +78,9 @@ def find_matches(search_dicts):
                 result = {'values': hit['document'], 'info': search_dict}
                 result['info']['score'] = hit['text_match']
                 results.append(result)
+
+    def sort_func(e):
+        return e['info']['score']
 
     results.sort(key=sort_func, reverse=True)
 
