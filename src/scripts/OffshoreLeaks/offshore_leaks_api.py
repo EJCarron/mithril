@@ -1,83 +1,44 @@
 from .. import helpers
-import psycopg2
 from .. import typesense_client
-
-def connect_to_db():
-    config = helpers.get_config()
-
-    conn = psycopg2.connect(database=config.ol_database,
-                            host=config.database_host,
-                            user=config.database_user,
-                            password=config.database_pw,
-                            port=config.database_port)
-
-    return conn
-
-
-def render_select_nodes_query(table, node_ids):
-    node_ids = [str(node_id) for node_id in node_ids]
-    nodes = '(' + ','.join(node_ids) + ')'
-
-    return f'SELECT * FROM {table} where db_node_id in{nodes}'
-
-
-def execute_get_nodes_query(query, node_type):
-    conn = connect_to_db()
-    cursor = conn.cursor()
-    cursor.execute(query)
-    raw_nodes = cursor.fetchall()
-    column_names = [desc[0] for desc in cursor.description]
-
-    if raw_nodes is None:
-        return None
-
-    nodes = []
-
-    for raw_node in raw_nodes:
-        node = {}
-        for i in range(len(column_names)):
-            node[column_names[i]] = raw_node[i]
-        node['node_type'] = node_type
-        nodes.append(node)
-
-    return nodes
-
-
-def get_nodes_of_type(node_ids, table, node_type):
-    query = render_select_nodes_query(table=table, node_ids=node_ids)
-    nodes = execute_get_nodes_query(query, node_type)
-    return nodes
+from src.scripts.data_wrangling import fetch_data
+from src.objects.graph_objects.relationships import relationship_factory
+from src.objects.graph_objects.nodes import node_factory
+import json
 
 
 def get_addresses(node_ids):
     config = helpers.get_config()
-    nodes = get_nodes_of_type(node_ids=node_ids, table=config.database_addresses_table,
-                              node_type='OffshoreLeaksAddress')
+    nodes = fetch_data.get_nodes_of_type(node_ids=node_ids,
+                                         node_type=node_factory.ol_address_str, database=config.ol_database)
     return nodes
 
 
 def get_entities(node_ids):
     config = helpers.get_config()
-    nodes = get_nodes_of_type(node_ids=node_ids, table=config.database_entities_table, node_type='OffshoreLeaksEntity')
+    nodes = fetch_data.get_nodes_of_type(node_ids=node_ids, node_type=node_factory.ol_entity_str,
+                                         database=config.ol_database)
     return nodes
 
 
 def get_intermediaries(node_ids):
     config = helpers.get_config()
-    nodes = get_nodes_of_type(node_ids=node_ids, table=config.database_intermediaries_table,
-                              node_type='OffshoreLeaksIntermediary')
+    nodes = fetch_data.get_nodes_of_type(node_ids=node_ids,
+                                         node_type=node_factory.ol_intermediary_str, database=config.ol_database)
     return nodes
 
 
 def get_officers(node_ids):
     config = helpers.get_config()
-    nodes = get_nodes_of_type(node_ids=node_ids, table=config.database_officers_table, node_type='OffshoreLeaksOfficer')
+    nodes = fetch_data.get_nodes_of_type(node_ids=node_ids,
+                                         node_type=node_factory.ol_officer_str,
+                                         database=config.ol_database)
     return nodes
 
 
 def get_others(node_ids):
     config = helpers.get_config()
-    nodes = get_nodes_of_type(node_ids=node_ids, table=config.database_others_table, node_type='OffshoreLeaksOther')
+    nodes = fetch_data.get_nodes_of_type(node_ids=node_ids, node_type=node_factory.ol_other_str,
+                                         database=config.ol_database)
     return nodes
 
 
@@ -95,17 +56,62 @@ def get_nodes(node_ids):
     return all_nodes
 
 
-def get_relationships(db_node_id):
+def get_relationships(node_ids):
     config = helpers.get_config()
-    query = 'SELECT * FROM {table} WHERE node_id_start={node_id} or node_id_end={node_id}'.format(
-        table=config.database_relationships_table, node_id=db_node_id)
 
-    nodes = execute_get_nodes_query(query, 'OffshoreLeaksRelationship')
+    relationships = fetch_data.get_relationships(node_ids=node_ids,
+                                                 database=config.ol_database,
+                                                 relationship_type=relationship_factory.ol_relationship_str)
 
-    return nodes
+    return relationships
 
 
 def find_matches(search_dicts):
     return typesense_client.find_matches(search_dicts)
 
 
+def process_results(results, node_type):
+    processed_results = []
+
+    for result in results:
+        doc = result['document']
+
+        source = doc['sourceID']
+
+        display_description = f"""{source}
+                                  {node_type}"""
+
+        processed_result = {'title': doc['name'],
+                            'name': doc['name'],
+                            'node_id': doc['node_id'],
+                            'init_token': doc['node_id'],
+                            'display_description': display_description,
+                            'node_type': node_type,
+                            'full_description': json.dumps(doc, indent=4)
+                            }
+        processed_results.append(processed_result)
+
+    return processed_results
+
+
+def search_typesense(query, page_number, search_type=None):
+    if search_type is None:
+        parts = {ol_type: typesense_client.paged_query(query=query,
+                                                       query_by='name',
+                                                       collection=ol_type,
+                                                       page=page_number
+                                                       ) for ol_type in node_factory.ol_keys_dict.keys()}
+
+        processed_results = []
+
+        for ol_type, results in parts.items():
+            processed_results += process_results(results, ol_type)
+
+        return processed_results
+
+    else:
+        return process_results(typesense_client.paged_query(query=query,
+                                                            query_by='name',
+                                                            collection=search_type,
+                                                            page=page_number
+                                                            ), search_type)

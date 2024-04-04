@@ -3,6 +3,8 @@ import time
 import requests
 import json
 from .. import helpers
+from src.objects.graph_objects.nodes import node_factory
+from src.scripts.generate_node_id import generate_node_id
 
 requests_counter = 0
 search_items_per_page = 10
@@ -45,21 +47,43 @@ def search(url, params):
 
     for item in result['items']:
         if item['kind'] == 'searchresults#company':
-            item['kind'] = 'CompaniesHouseCompany'
-            item['node_id'] = item['company_number']
-            item['name'] = item['title']
+            item['node_type'] = node_factory.ch_company_str
+            item['node_id'] = generate_node_id(item['company_number'],node_factory.ch_company_str)
+            item['init_token'] = item['company_number']
+
         elif item['kind'] == 'searchresults#officer':
-            item['kind'] = 'CompaniesHouseOfficer'
-            item['node_id'] = item['links']['self'].split('/')[2]
-            item['name'] = item['title']
+            item['node_type'] = node_factory.ch_officer_str
+            item['node_id'] = generate_node_id(item['links']['self'].split('/')[2], node_factory.ch_officer_str)
+            item['init_token'] = item['links']['self'].split('/')[2]
         else:
             item['kind'] = 'ERROR TYPE NOT ACCOUNTED FOR'
             item['node_id'] = 'ERROR TYPE NOT ACCOUNTED FOR'
             item['name'] = 'ERROR TYPE NOT ACCOUNTED FOR'
+            continue
+
+        item['name'] = item['title']
+
+        description = item['description']
+        address = item['address_snippet']
+
+        item['display_description'] = f"""{description}
+                                          {address}"""
+
         items.append(item)
 
     return items
 
+
+def companies_house_search(query, page_number, search_type=None):
+    if search_type is None:
+        return search_all(query, page_number)
+    elif search_type == node_factory.ch_company_str:
+        return search_companies(query, page_number)
+    elif search_type == node_factory.ch_officer_str:
+        return search_officers(query, page_number)
+    else:
+        print(f'SYSTEM ERROR incorrect type for Companies House Search {search_type}')
+        return []
 
 def search_all(query, page_number):
     url = 'https://api.company-information.service.gov.uk/search'

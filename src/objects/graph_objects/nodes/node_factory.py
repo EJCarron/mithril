@@ -1,3 +1,4 @@
+from src.objects.graph_objects.nodes.companies_house.companies_house_node import CompaniesHouseNode
 from src.objects.graph_objects.nodes.companies_house.companies_house_officer import CompaniesHouseOfficer
 from src.objects.graph_objects.nodes.companies_house.companies_house_company import CompaniesHouseCompany
 from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_node import OffshoreLeaksNode
@@ -7,13 +8,15 @@ from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_intermediary 
 from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_officer import OffshoreLeaksOfficer
 from src.objects.graph_objects.nodes.offshore_leaks.offshore_leaks_other import OffshoreLeaksOther
 from src.objects.graph_objects.nodes.uk_electoral_commission.electoral_commission_node import ElectoralCommissionNode
-from src.objects.graph_objects.nodes.uk_electoral_commission.electoral_commission_regulated_donee import\
-    ElectoralCommissionRegulatedDonee
-from src.objects.graph_objects.nodes.uk_electoral_commission.electoral_commission_donor import\
+from src.objects.graph_objects.nodes.uk_electoral_commission.electoral_commission_regulated_entity import \
+    ElectoralCommissionRegulatedEntity
+from src.objects.graph_objects.nodes.uk_electoral_commission.electoral_commission_donor import \
     ElectoralCommissionDonor
 from .node import Node
+from .same_as_centre_node import SameAsCentre
 
 node_str = Node.__name__
+ch_node_str = CompaniesHouseNode.__name__
 ch_officer_str = CompaniesHouseOfficer.__name__
 ch_company_str = CompaniesHouseCompany.__name__
 ol_node_str = OffshoreLeaksNode.__name__
@@ -23,10 +26,13 @@ ol_intermediary_str = OffshoreLeaksIntermediary.__name__
 ol_officer_str = OffshoreLeaksOfficer.__name__
 ol_other_str = OffshoreLeaksOther.__name__
 ec_node_str = ElectoralCommissionNode.__name__
-ec_regulated_donee_str = ElectoralCommissionRegulatedDonee.__name__
+ec_regulated_entity_str = ElectoralCommissionRegulatedEntity.__name__
 ec_donor_str = ElectoralCommissionDonor.__name__
+same_as_centre_str = SameAsCentre.__name__
+
 
 node = Node
+ch_node = CompaniesHouseNode
 ch_officer = CompaniesHouseOfficer
 ch_company = CompaniesHouseCompany
 ol_node = OffshoreLeaksNode
@@ -36,10 +42,12 @@ ol_intermediary = OffshoreLeaksIntermediary
 ol_officer = OffshoreLeaksOfficer
 ol_other = OffshoreLeaksOther
 ec_node = ElectoralCommissionNode
-ec_regulated_donee = ElectoralCommissionRegulatedDonee
+ec_regulated_entity = ElectoralCommissionRegulatedEntity
 ec_donor = ElectoralCommissionDonor
+same_as_centre = SameAsCentre
 
 node_dict = {node_str: node,
+             ch_node_str: ch_node,
              ch_officer_str: ch_officer,
              ch_company_str: ch_company,
              ol_node_str: ol_node,
@@ -49,9 +57,14 @@ node_dict = {node_str: node,
              ol_officer_str: ol_officer,
              ol_other_str: ol_other,
              ec_node: ec_node_str,
-             ec_regulated_donee_str: ec_regulated_donee,
-             ec_donor_str: ec_donor
+             ec_regulated_entity_str: ec_regulated_entity,
+             ec_donor_str: ec_donor,
+             same_as_centre_str: same_as_centre
              }
+
+high_level_types_dict = {ch_node_str: ch_node,
+                         ol_node_str: ol_node,
+                         ec_node_str: ec_node}
 
 ol_list = [ol_address, ol_entity, ol_intermediary, ol_officer, ol_other]
 
@@ -80,4 +93,14 @@ ol_keys_dict = {ol_address_str: ol_raw_address_keys,
                 ol_intermediary_str: ol_raw_intermediary_keys,
                 ol_officer_str: ol_raw_officer_keys,
                 ol_other_str: ol_raw_other_keys
+                }
+
+ec_nodes_dict = {ec_regulated_entity_str: ec_regulated_entity,
+                 ec_donor_str: ec_donor}
+
+ol_nodes_dict ={ol_address_str: ol_address,
+                ol_entity_str: ol_entity,
+                ol_intermediary_str: ol_intermediary,
+                ol_officer_str: ol_officer,
+                ol_other_str: ol_other
                 }

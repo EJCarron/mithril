@@ -4,11 +4,13 @@ from src.scripts.uk_electoral_commission import electoral_commission_api
 
 class ElectoralCommissionDonor(ElectoralCommissionNode):
     def __init__(self, **kwargs):
-        super(ElectoralCommissionDonor, self).__init__()
-        self.__dict__.update(kwargs)
+        self.CompanyRegistrationNumber = None
+        super(ElectoralCommissionDonor, self).__init__(**kwargs)
+
+
 
     def render_unique_label(self):
-        return self.name.replace(' ', '_')
+        return self.name.replace(' ', '_') + '_' + self.node_id
 
     @classmethod
     def batch_init(cls, node_ids):

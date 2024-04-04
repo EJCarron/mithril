@@ -7,6 +7,7 @@ class Node(GraphObject):
         self.expanded = False
         self.node_id = 'not_implemented_node_id'
         self.name = 'not implemented name'
+        self.init_token = 'not implemented init token'
 
     @property
     def unique_label(self):
@@ -31,9 +32,3 @@ class Node(GraphObject):
     @classmethod
     def batch_init(cls, node_ids):
         print('ERROR batch_init not implemented for ' + type(cls).__name__)
-
-
-
-    def expand(self):
-        print('expand not implemented')
-        return None

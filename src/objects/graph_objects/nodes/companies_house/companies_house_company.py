@@ -1,15 +1,17 @@
-from src.objects.graph_objects.nodes.node import Node
+from src.objects.graph_objects.nodes.companies_house.companies_house_node import CompaniesHouseNode
 from src.scripts.companies_house import companies_house_api
+from src.scripts.generate_node_id import generate_node_id
 
 
-class CompaniesHouseCompany(Node):
+class CompaniesHouseCompany(CompaniesHouseNode):
 
     def __init__(self, **kwargs):
-        super(CompaniesHouseCompany, self).__init__()
         self.registered_office_address = None
         self.node_id = None
         self.name = None
-        self.__dict__.update(kwargs)
+        self.company_number = None
+        super(CompaniesHouseCompany, self).__init__(**kwargs)
+        self.init_token = self.company_number
 
     @property
     def events(self):
@@ -40,17 +42,18 @@ class CompaniesHouseCompany(Node):
         return ' '.join(self.registered_office_address.values())
 
     def render_unique_label(self):
-        unique_label = '{name}_{id}'.format(name=self.name.replace(' ', '_'), id=self.node_id)
+        unique_label = '{name}_{id}'.format(name=self.name.replace(' ', '_'), id=self.company_number)
         return unique_label
 
     @classmethod
     def from_api_result(cls, result):
         result['name'] = cls.clean_name(result['company_name'])
-        result['node_id'] = result['company_number']
+        type_str = CompaniesHouseCompany.__name__
+        result['node_id'] = generate_node_id(result['company_number'], type_str)
         return cls(**result)
 
     @classmethod
-    def init_from_company_number(cls, ch_company_number):
+    def init_from_companies_house_id(cls, ch_company_number):
         print('Pulling data for {0} from Companies House API'.format(ch_company_number))
         raw_result = companies_house_api.get_company(ch_company_number)
 
@@ -59,14 +62,5 @@ class CompaniesHouseCompany(Node):
 
         return cls.from_api_result(raw_result)
 
-    @classmethod
-    def batch_init(cls, node_ids):
-        nodes = []
-
-        for node_id in node_ids:
-            nodes.append(cls.init_from_company_number(node_id))
-
-        return nodes
-
     def get_officer_ids(self):
-        return companies_house_api.get_company_officer_ids(self.node_id)
+        return companies_house_api.get_company_officer_ids(self.company_number)

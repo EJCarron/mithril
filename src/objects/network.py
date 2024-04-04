@@ -2,9 +2,38 @@ import json
 import sys
 from .graph_objects.nodes import node_factory
 from .graph_objects.relationships import relationship_factory
-from .graph_objects import expand
+from src.scripts.OffshoreLeaks import offshore_leaks_api
+from src.scripts.uk_electoral_commission import electoral_commission_api
 import pandas as pd
 import uuid
+from src.scripts.generate_node_id import generate_node_id
+
+
+def split_node_instructions_by_type(nodes):
+    nodes_by_type = {}
+
+    for node_instructions in nodes:
+        if node_instructions['node_type'] not in nodes_by_type.keys():
+            nodes_by_type[node_instructions['node_type']] = []
+        nodes_by_type[node_instructions['node_type']].append(node_instructions['node_id'])
+
+    return nodes_by_type
+
+
+def split_nodes_by_high_level_type(nodes):
+    nodes_by_type = {node_type: [] for node_type in node_factory.high_level_types_dict.keys()}
+
+    for node in nodes:
+        found_type = False
+        for high_level_node_type_str, high_level_node_type in node_factory.high_level_types_dict.items():
+            if issubclass(type(node), high_level_node_type):
+                nodes_by_type[high_level_node_type_str].append(node)
+                found_type = True
+                break
+        if not found_type:
+            print(f'SYSTEM ERROR could not find high level type for {node.name} of type {type(node).__name__}')
+
+    return nodes_by_type
 
 
 class Network:
@@ -17,7 +46,6 @@ class Network:
         self.relationships = [] if relationships is None else relationships
 
     # Getters
-
     def get_nodes_of_type(self, node_type, inverse=False):
 
         found_nodes = {}
@@ -106,7 +134,7 @@ class Network:
 
     @property
     def regulated_donees(self):
-        return self.get_nodes_of_type(node_type=node_factory.ec_regulated_donee)
+        return self.get_nodes_of_type(node_type=node_factory.ec_regulated_entity)
 
     # Setters
 
@@ -175,7 +203,7 @@ class Network:
         self.add_node(ol_other, node_type=node_factory.ol_other)
 
     def add_regulated_donee(self, regulated_donee):
-        self.add_node(regulated_donee, node_type=node_factory.ec_regulated_donee)
+        self.add_node(regulated_donee, node_type=node_factory.ec_regulated_entity)
 
     def add_ch_appointment(self, appointment):
         self.add_relationship(appointment, relationship_factory.ch_appointment)
@@ -189,12 +217,7 @@ class Network:
     @classmethod
     def start(cls, core_nodes, network_name):
 
-        nodes_by_type = {}
-
-        for node_instructions in core_nodes:
-            if node_instructions['node_type'] not in nodes_by_type.keys():
-                nodes_by_type[node_instructions['node_type']] = []
-            nodes_by_type[node_instructions['node_type']].append(node_instructions['node_id'])
+        nodes_by_type = split_node_instructions_by_type(core_nodes)
 
         nodes = []
 
@@ -205,37 +228,50 @@ class Network:
 
         network = cls(nodes=nodes_dict, name=network_name)
 
-        network.expand_network()
+        network.expand()
 
         return network
 
-    def expand_network(self, target_node_ids=None):
+    # def expand_network(self, target_node_ids=None):
+    #
+    #     target_node_ids = self.nodes.keys() if target_node_ids is None else target_node_ids
+    #
+    #     new_nodes = self.nodes.copy()
+    #     new_relationships = self.relationships.copy()
+    #
+    #     for node in self.nodes.values():
+    #
+    #         if node.expanded or node.node_id not in target_node_ids:
+    #             continue
+    #
+    #         new_node_relationship_tuples = expand_old.expand_node(node, new_nodes)
+    #
+    #         for new_node_relationship_tuple in new_node_relationship_tuples:
+    #
+    #             new_node = new_node_relationship_tuple[0]
+    #             new_relationship = new_node_relationship_tuple[1]
+    #
+    #             if self.relationship_already_exists(new_relationship, new_relationships):
+    #                 continue
+    #             else:
+    #                 new_nodes[new_node.node_id] = new_node
+    #                 new_relationships.append(new_relationship)
+    #
+    #     self.set_nodes(new_nodes)
+    #     self.set_relationships(new_relationships)
 
-        target_node_ids = self.nodes.keys() if target_node_ids is None else target_node_ids
+    def expand(self, target_node_ids=None):
 
-        new_nodes = self.nodes.copy()
-        new_relationships = self.relationships.copy()
+        nodes_to_expand = self.nodes.values() if target_node_ids is None else [self.get_node(node_id) for node_id in
+                                                                               target_node_ids]
 
-        for node in self.nodes.values():
+        nodes_to_expand = [node for node in nodes_to_expand if not node.expanded]
 
-            if node.expanded or node.node_id not in target_node_ids:
-                continue
+        nodes_to_expand_split_by_type = split_nodes_by_high_level_type(nodes_to_expand)
 
-            new_node_relationship_tuples = expand.expand_node(node, new_nodes)
-
-            for new_node_relationship_tuple in new_node_relationship_tuples:
-
-                new_node = new_node_relationship_tuple[0]
-                new_relationship = new_node_relationship_tuple[1]
-
-                if self.relationship_already_exists(new_relationship, new_relationships):
-                    continue
-                else:
-                    new_nodes[new_node.node_id] = new_node
-                    new_relationships.append(new_relationship)
-
-        self.set_nodes(new_nodes)
-        self.set_relationships(new_relationships)
+        self.expand_ch_nodes(nodes_to_expand_split_by_type[node_factory.ch_node_str])
+        self.expand_ol_nodes(nodes_to_expand_split_by_type[node_factory.ol_node_str])
+        self.expand_ec_nodes(nodes_to_expand_split_by_type[node_factory.ec_node_str])
 
     def to_dataframes(self):
         df_dict = {'ch_officers': pd.DataFrame([o.to_flat_dict() for o in self.ch_officers.values()]).drop(
@@ -336,44 +372,76 @@ class Network:
                                                         **attributes
                                                         )
 
-        if self.relationship_already_exists(new_relationship=relationship, existing_relationships=self.relationships):
+        if self.relationship_already_exists(new_relationship=relationship):
             print('relationship already exists')
             return None
         else:
             self.add_electoral_commission_donation_relationship(relationship)
 
-    def create_same_as_relationship(self, parent_node_id, child_node_id):
-        parent_node = self.get_node(parent_node_id)
-        child_node = self.get_node(child_node_id)
+    def find_same_as_centre(self, node_id):
+        same_as_relationships = self.get_same_as_relationships()
 
-        if parent_node is None or child_node is None:
+        same_as_centre_ids = []
+
+        for relationship in same_as_relationships:
+            if node_id == relationship.parent_id:
+                if relationship.centre_node_id not in same_as_centre_ids:
+                    same_as_centre_ids.append(relationship.centre_node_id)
+
+        if len(same_as_centre_ids) == 0:
+            return None
+        if len(same_as_centre_ids) > 1:
+            print(f'SYSTEM ERROR node {self.get_node(node_id).name} attached to {len(same_as_centre_ids)} centres')
+            exit()
+
+        return self.get_node(same_as_centre_ids[0])
+
+    def remove_same_as_centre_and_reassign_to_new_centre(self, centre_to_remove, new_centre):
+        relationships = self.get_same_as_relationships()
+
+        for relationship in relationships:
+            if relationship.centre_node_id == centre_to_remove.node_id:
+                relationship.change_centre(new_centre)
+
+    def create_same_as_relationship(self, first_node_id, second_node_id):
+        first_node = self.get_node(first_node_id)
+        second_node = self.get_node(second_node_id)
+
+        if first_node is None or second_node is None:
             print('System Error: same relationship nodes aren\'t in network')
             return None
 
-        kwargs = {'child': {x: child_node.__dict__[x] for x in child_node.__dict__ if x != 'node_id'},
-                  'parent': {x: parent_node.__dict__[x] for x in parent_node.__dict__ if x != 'node_id'}
-                  }
+        first_node_already_existing_associated_centre = self.find_same_as_centre(first_node_id)
+        second_node_already_existing_associated_centre = self.find_same_as_centre(second_node_id)
 
-        relationship = relationship_factory.same_as(parent_node_name=parent_node.unique_label,
-                                                    parent_id=parent_node.node_id,
-                                                    child_node_name=child_node.unique_label,
-                                                    child_id=child_node.node_id,
-                                                    **kwargs
-                                                    )
-
-        if self.relationship_already_exists(new_relationship=relationship, existing_relationships=self.relationships):
-            print('relationship already exists')
-            return None
+        if first_node_already_existing_associated_centre is None and second_node_already_existing_associated_centre is None:
+            same_as_centre = node_factory.same_as_centre(name=first_node.name)
+            self.add_node(same_as_centre)
+        elif first_node_already_existing_associated_centre is not None and second_node_already_existing_associated_centre is None:
+            same_as_centre = first_node_already_existing_associated_centre
+        elif first_node_already_existing_associated_centre is None and second_node_already_existing_associated_centre is not None:
+            same_as_centre = second_node_already_existing_associated_centre
         else:
-            self.add_same_as(relationship)
+            self.remove_same_as_centre_and_reassign_to_new_centre(
+                centre_to_remove=second_node_already_existing_associated_centre,
+                new_centre=first_node_already_existing_associated_centre)
+            return
 
-    @classmethod
-    def relationship_already_exists(cls, new_relationship, existing_relationships):
+        first_relationship = relationship_factory.same_as.create(same_as_centre=same_as_centre, node=first_node)
+        second_relationship = relationship_factory.same_as.create(same_as_centre=same_as_centre, node=second_node)
+
+        if not self.relationship_already_exists(new_relationship=first_relationship):
+            self.add_same_as(first_relationship)
+
+        if not self.relationship_already_exists(second_relationship):
+            self.add_same_as(second_relationship)
+
+    def relationship_already_exists(self, new_relationship):
         flat_new_relationship = new_relationship.to_flat_dict()
 
         already_exists = False
 
-        for relationship in existing_relationships:
+        for relationship in self.relationships:
             identical = True
 
             flat_relationship = relationship.to_flat_dict()
@@ -388,3 +456,172 @@ class Network:
                 break
 
         return already_exists
+
+    def expand_ch_nodes(self, nodes):
+
+        for node in nodes:
+            if type(node).__name__ == node_factory.ch_officer_str:
+                self.expand_ch_officer(node)
+            elif type(node).__name__ == node_factory.ch_company_str:
+                self.expand_ch_company(node)
+            else:
+                print(f"SYSTEM ERROR node not either ch company or officer {node.name} of type {type(node).__name__}")
+
+    def expand_ch_officer(self, ch_officer):
+        print('expanding CH Officer ' + ch_officer.name)
+
+        for item in ch_officer.items:
+            company_number = item['appointed_to']['company_number']
+            company_node_id = generate_node_id(str(company_number), node_factory.ch_company_str)
+            if company_node_id in self.nodes.keys():
+                ch_company = self.get_node(company_node_id)
+            else:
+                ch_company = node_factory.ch_company.init_from_companies_house_id(company_number)
+                self.add_node(ch_company)
+
+            ch_appointment = relationship_factory.ch_appointment(parent_node_name=ch_officer.unique_label,
+                                                                 child_node_name=ch_company.unique_label,
+                                                                 parent_id=ch_officer.node_id,
+                                                                 child_id=ch_company.node_id,
+                                                                 **item)
+
+            if not self.relationship_already_exists(ch_appointment):
+                self.add_relationship(ch_appointment)
+
+        ch_officer.expanded = True
+
+    def expand_ch_company(self, ch_company):
+        print('expanding CH Company ' + ch_company.name)
+
+        ch_officer_ids = ch_company.get_officer_ids()
+
+        for ch_officer_id in ch_officer_ids:
+            node_id = generate_node_id(ch_officer_id, node_factory.ch_officer_str)
+            if node_id in self.nodes.keys():
+                ch_officer = self.get_node(node_id)
+            else:
+                ch_officer = node_factory.ch_officer.init_from_companies_house_id(ch_officer_id)
+
+                self.add_ch_officer(ch_officer)
+
+            item = ch_officer.get_item_from_company_number(ch_company.company_number)
+
+            if item is None:
+                print('ERROR appointment to {0} not found in {1}\'s appointment list'.format(ch_company.name,
+                                                                                             ch_officer.name))
+                item = {}
+
+            ch_appointment = relationship_factory.ch_appointment(parent_node_name=ch_officer.unique_label,
+                                                                 child_node_name=ch_company.unique_label,
+                                                                 parent_id=ch_officer.node_id,
+                                                                 child_id=ch_company.node_id,
+                                                                 **item)
+
+            if not self.relationship_already_exists(ch_appointment):
+                self.add_relationship(ch_appointment)
+
+        self.company_donations_connections(ch_company)
+
+        ch_company.expanded = True
+
+    def company_donations_connections(self, company):
+        donors = self.find_ch_company_in_ec_donors(company.company_number)
+
+        for donor in donors:
+            if donor.node_id not in self.nodes.keys():
+                self.add_node(donor)
+            self.create_same_as_relationship(company.node_id, donor.node_id)
+
+    def find_ch_company_in_ec_donors(self, company_number):
+        raw_donors = electoral_commission_api.get_donors_by_company_number(company_number)
+        if len(raw_donors) > 0:
+            donors = [node_factory.ec_donor(**raw_donor) for raw_donor in raw_donors]
+            return donors
+        return []
+
+    def expand_ol_nodes(self, nodes):
+        if len(nodes) == 0:
+            return
+        print('expanding OffshoreLeaks nodes ')
+        self.expand_local_db_nodes(nodes=nodes, api=offshore_leaks_api,
+                                   relationship_type=relationship_factory.ol_relationship)
+
+    def expand_ec_nodes(self, nodes):
+        if len(nodes) == 0:
+            return
+        print('expanding Electoral Commission nodes')
+        self.expand_local_db_nodes(nodes=nodes, api=electoral_commission_api,
+                                   relationship_type=relationship_factory.ec_donation)
+
+        for node in nodes:
+            if isinstance(node, node_factory.ec_donor) and node.CompanyRegistrationNumber is not None:
+                self.ec_donor_company_expand(node)
+
+    def ec_donor_company_expand(self, node):
+        company_number = node.CompanyRegistrationNumber
+        company_node_id = generate_node_id(company_number, node_factory.ch_company_str)
+
+        if company_node_id not in self.nodes.keys():
+            company = node_factory.ch_company.init_from_companies_house_id(company_number)
+            if company is None:
+                return
+            self.add_node(company)
+
+        self.create_same_as_relationship(node.node_id, company_node_id)
+
+    def expand_local_db_nodes(self, nodes, api, relationship_type):
+        raw_relationships = api.get_relationships(node_ids=[node.node_id for node in nodes])
+
+        node_ids_to_pull = self.find_nodes_to_pull(raw_relationships)
+
+        new_nodes = api.get_nodes(node_ids_to_pull)
+
+        if len(new_nodes) > 0:
+            [self.add_node(node_factory.node_dict[node['obj_type']](**node)) for node in new_nodes]
+
+        for raw_relationship in raw_relationships:
+            parent_node = self.get_node(raw_relationship['parent_node_id'])
+            child_node = self.get_node(raw_relationship['child_node_id'])
+
+            if parent_node is None or child_node is None:
+                continue
+
+            new_relationship = relationship_type(parent_node_name=parent_node.unique_label,
+                                                 parent_id=parent_node.node_id,
+                                                 child_node_name=child_node.unique_label,
+                                                 child_id=child_node.node_id,
+                                                 **raw_relationship
+                                                 )
+
+            if not self.relationship_already_exists(new_relationship):
+                self.add_relationship(new_relationship, relationship_type)
+
+        for node in nodes:
+            node.expanded = True
+
+    def find_nodes_to_pull(self, raw_relationships):
+        node_ids_to_pull = []
+
+        for raw_relationship in raw_relationships:
+
+            def need_to_pull(node_id):
+                if node_id in self.nodes.keys() or node_id in node_ids_to_pull:
+                    pass
+                else:
+                    node_ids_to_pull.append(node_id)
+
+            need_to_pull(raw_relationship['parent_node_id'])
+            need_to_pull(raw_relationship['child_node_id'])
+
+        return node_ids_to_pull
+
+    def add_nodes(self, add_nodes):
+        nodes_not_in_network = [node for node in add_nodes if node['node_id'] not in self.nodes.keys()]
+        nodes_split_by_type = split_node_instructions_by_type(nodes_not_in_network)
+
+        nodes = []
+
+        for node_type, node_ids in nodes_split_by_type.items():
+            nodes += node_factory.node_dict[node_type].batch_init(node_ids)
+
+        [self.add_node(node) for node in nodes]

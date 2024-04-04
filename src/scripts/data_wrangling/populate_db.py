@@ -1,20 +1,20 @@
-import uuid
-import math as maths
 from src.scripts import helpers
 import pandas as pd
 from sqlalchemy import create_engine
 import psycopg2
 import psycopg2.extensions
 from psycopg2.extras import execute_values
-import numpy as np
 from src.scripts import typesense_client
-import json
 from sqlalchemy.types import Text, Numeric
+from src.scripts.generate_node_id import generate_node_id
+from src.objects.graph_objects.nodes import node_factory
+from src.objects.graph_objects.relationships import relationship_factory
+import numpy
 
-offshore_leaks_node_types = ['addresses', 'entities', 'intermediaries', 'officers', 'others']
+offshore_leaks_node_types = node_factory.ol_keys_dict.keys()
 
-offshore_leaks_schemas = {'entities': {
-    'name': 'entities',
+offshore_leaks_schemas = {node_factory.ol_entity_str: {
+    'name': node_factory.ol_entity_str,
     'fields': [
         {'name': 'address', 'type': 'string'},
         {'name': 'name', 'type': 'string'},
@@ -25,8 +25,8 @@ offshore_leaks_schemas = {'entities': {
     ]
 
 },
-    'addresses': {
-        'name': 'addresses',
+    node_factory.ol_address_str: {
+        'name': node_factory.ol_address_str,
         'fields': [
             {'name': 'name', 'type': 'string'},
             {'name': 'address', 'type': 'string'},
@@ -34,16 +34,16 @@ offshore_leaks_schemas = {'entities': {
         ]
 
     },
-    'officers': {
-        'name': 'officers',
+    node_factory.ol_officer_str: {
+        'name': node_factory.ol_officer_str,
         'fields': [
             {'name': 'name', 'type': 'string'},
             {'name': 'countries', 'type': 'string', 'facet': True},
         ]
 
     },
-    'intermediaries': {
-        'name': 'intermediaries',
+    node_factory.ol_intermediary_str: {
+        'name': node_factory.ol_intermediary_str,
         'fields': [
 
             {'name': 'name', 'type': 'string'},
@@ -51,8 +51,8 @@ offshore_leaks_schemas = {'entities': {
         ],
 
     },
-    'others': {
-        'name': 'others',
+    node_factory.ol_other_str: {
+        'name': node_factory.ol_other_str,
         'fields': [
 
             {'name': 'name', 'type': 'string'},
@@ -61,22 +61,14 @@ offshore_leaks_schemas = {'entities': {
 
     }}
 
-electoral_commission_schemas = {'donations': {
-    'name': 'donations',
-    'fields': [{'name': 'regulated_donee', 'type': 'string', 'facet': True},
-               {'name': 'donor', 'type': 'string', 'facet': True},
-               {'name': 'donation_type', 'type': 'string', 'facet': True},
-               {'name': 'destination', 'type': 'string', 'facet': True},
-               {'name': 'nature_of_donation', 'type': 'string', 'facet': True}
-               ]
-},
-    'regulated_donees': {
-        'name': 'regulated_donees',
+electoral_commission_schemas ={
+    node_factory.ec_regulated_entity_str: {
+        'name': node_factory.ec_regulated_entity_str,
         'fields': [{'name': 'name', 'type': 'string', 'facet': False}]
 
     },
-    'donors': {
-        'name': 'donors',
+    node_factory.ec_donor_str: {
+        'name': node_factory.ec_donor_str,
         'fields': [{'name': 'name', 'type': 'string', 'facet': False}]
 
     }
@@ -110,15 +102,15 @@ def create_table(db_name, table_name, cols):
     conn.commit()
     conn.close()
 
+
 def render_create_table_instructions(cols):
     text_type = 'text'
-    big_int = 'numeric'
-    node_id = 'node_id'
 
-    col_instructions = ', '.join([f'{col} {big_int if node_id in col else text_type}' for col in cols])
-    dtypes = {col: Numeric() if node_id in col else Text() for col in cols}
+    col_instructions = ', '.join([f'{col} {text_type}' for col in cols])
+    dtypes = {col: Text() for col in cols}
 
     return col_instructions, dtypes
+
 
 def populate_postgres_db(dfs, db_name):
     config = helpers.get_config()
@@ -134,9 +126,9 @@ def populate_postgres_db(dfs, db_name):
 
         col_instructions, dtypes = render_create_table_instructions(cols)
 
-        create_table(db_name=db_name, table_name=table_name, cols=col_instructions)
+        # create_table(db_name=db_name, table_name=table_name, cols=col_instructions)
 
-        df.to_sql(table_name, con=conn, if_exists='replace', index=False, dtype=dtypes)
+        df.to_sql(table_name.lower(), con=conn, if_exists='replace', index=False, dtype=dtypes)
 
 
 def clear_old_collections(data, client):
@@ -186,7 +178,6 @@ def create_temp_table_with_latest_data(cur, table_name, df):
     cols = [col for col in data_dicts[0].keys()]
 
     col_instructions, dtypes = render_create_table_instructions(cols)
-
 
     cols_for_insert = ', '.join(cols)
 
@@ -266,53 +257,99 @@ def electoral_commission_find_donations_diffs():
 
     return pd.DataFrame(new_donations)
 
+good_count = 0
+bad_count = 0
+
+def clean_company_reg_number(reg):
+
+    if pd.isna(reg):
+        return reg
+
+    bads = [' ', '(', ')', '-']
+
+    for bad in bads:
+        reg = reg.replace(bad, '')
+
+    if len(reg) == 8:
+        return reg
+    elif len(reg) == 7:
+        return '0' + reg
+    else:
+        return numpy.nan
+
+
 
 def electoral_commission_prepare_donations_df(donations_df):
-    col_names = donations_df.columns.to_list()
-    name_replace = {key: key.replace(' ', '_').lower() for key in col_names}
+    donations_df = donations_df.dropna(subset=['DonorName', 'DonorId'])
+    donations_df.update(donations_df.loc[:, ['DonorName', 'RegulatedEntityName']].apply(
+        lambda x: x.str.strip()))
 
-    donations_df.rename(columns=name_replace, inplace=True)
+    donations_df['CompanyRegistrationNumber'] = donations_df['CompanyRegistrationNumber'].apply(clean_company_reg_number)
 
-    donations_df['donor'] = donations_df['donor'].fillna('Unidentified Donor')
-    donations_df = donations_df.apply(lambda x: x.str.strip())
+    donations_df['DonorId'] = donations_df['DonorId'].astype(int)
 
     return donations_df
 
 
-def electoral_commission_merge_dfs(donations_df, regulated_donees_df, donors_df):
-    donations_df = donations_df.merge(regulated_donees_df, on='regulated_donee')
+def electoral_commission_merge_dfs(donations_df, regulated_entities_df, donors_df):
+    donations_df = donations_df.merge(regulated_entities_df[['RegulatedEntityId', 'node_id']], on='RegulatedEntityId')
 
-    donations_df.rename(columns={'node_id': 'regulated_donee_node_id'}, inplace=True)
-    regulated_donees_df.rename(columns={'regulated_donee': 'name'}, inplace=True)
+    donations_df.rename(columns={'node_id': 'child_node_id'}, inplace=True)
+    regulated_entities_df.rename(columns={'RegulatedEntityName': 'name'}, inplace=True)
 
-    donations_df = donations_df.merge(donors_df, on='donor')
+    donations_df = donations_df.merge(donors_df[['DonorId', 'node_id']], on='DonorId')
 
-    donations_df.rename(columns={'node_id': 'donor_node_id'}, inplace=True)
-    donors_df.rename(columns={'donor': 'name'}, inplace=True)
+    donations_df.rename(columns={'node_id': 'parent_node_id'}, inplace=True)
+    donors_df.rename(columns={'DonorName': 'name'}, inplace=True)
 
-    return donations_df, regulated_donees_df, donors_df
+    donations_df.drop(columns=['RegulatedEntityId', 'DonorId'], inplace=True)
+
+    return donations_df, regulated_entities_df, donors_df
+
+
+# Data set has collisions in DonorId, I've emailed electoral commission to ask about it, in mean time just drop all
+# colliding rows
+def remove_dupes(donations_df):
+    donors_df = donations_df[['DonorId', 'CompanyRegistrationNumber', 'DonorStatus', 'DonorName']]
+    donors_df = donors_df.drop_duplicates()
+    donor_df_groups = donors_df.groupby('DonorId')
+
+    bad_donor_ids = []
+
+    for group in donor_df_groups:
+        if len(group[1]) > 1:
+            bad_donor_ids.append(group[1].iloc[0]['DonorId'])
+
+    donations_df = donations_df[~donations_df['DonorId'].isin(bad_donor_ids)]
+
+    return donations_df
 
 
 def electoral_commission_process_raw_donations_csv():
     config = helpers.get_config()
     donations_df = pd.read_csv(config.raw_registered_interests_donations_csv_path)
     donations_df = electoral_commission_prepare_donations_df(donations_df)
+    donations_df = remove_dupes(donations_df)
 
-    regulated_donees = list(donations_df['regulated_donee'].unique())
-    donors = list(donations_df['donor'].unique())
+    regulated_entities_df = donations_df[['RegulatedEntityId', 'RegulatedEntityName', 'RegulatedEntityType'
+                                          ]]
 
-    regulated_donees_df = pd.DataFrame(
-        [{'regulated_donee': donee, 'node_id': uuid.uuid1().int} for donee in
-         regulated_donees])
+    donors_df = donations_df[['DonorId', 'CompanyRegistrationNumber', 'DonorStatus', 'DonorName']]
 
-    donors_df = pd.DataFrame([{'donor': str(donor),
-                               'node_id': uuid.uuid1().int} for donor in donors])
+    regulated_entities_df = regulated_entities_df.drop_duplicates()
+    regulated_entities_df['node_id'] = regulated_entities_df.apply(
+        lambda row: generate_node_id(row.RegulatedEntityId, node_factory.ec_regulated_entity_str), axis=1)
 
-    donations_df, regulated_donees_df, donors_df = electoral_commission_merge_dfs(donations_df,
-                                                                                  regulated_donees_df, donors_df)
+    donors_df = donors_df.drop_duplicates()
+    donors_df['node_id'] = donors_df.apply(
+        lambda row: generate_node_id(row.DonorId, node_factory.ec_donor_str), axis=1)
 
-    nodes_dfs = {'regulated_donees': regulated_donees_df, 'donors': donors_df}
-    relationships_dfs = {'donations': donations_df}
+    donations_df, regulated_entities_df, donors_df = electoral_commission_merge_dfs(donations_df,
+                                                                                    regulated_entities_df, donors_df)
+
+    nodes_dfs = {node_factory.ec_regulated_entity_str: regulated_entities_df,
+                 node_factory.ec_donor_str: donors_df}
+    relationships_dfs = {relationship_factory.ec_donation_str: donations_df}
 
     return nodes_dfs, relationships_dfs
 
@@ -324,7 +361,7 @@ def electoral_commission_find_node_diffs(new_donations_df):
     conn = connect_to_db(config.roi_database)
     cursor = conn.cursor()
 
-    def get_nodes(table, node_names):
+    def get_nodes(table, node_names, node_type):
         query = f'select * from {table} where {table}.name in %s'
 
         node_tuple = tuple(node_names)
@@ -340,19 +377,24 @@ def electoral_commission_find_node_diffs(new_donations_df):
                     exists = True
                     break
             if not exists:
-                new_node = {'name': node_name, 'node_id': uuid.uuid1().int}
+                new_node = {'name': node_name, 'node_id': generate_node_id(original_node_identifier=node_name,
+                                                                           node_type_str=node_type)}
                 all_nodes.append(new_node)
                 new_nodes.append(new_node)
 
         return all_nodes, new_nodes
 
-    all_regulated_donees, new_regulated_donees = get_nodes(table='regulated_donees',
-                                                           node_names=new_donations_df['regulated_donee'].unique())
+    all_regulated_donees, new_regulated_donees = get_nodes(table=node_factory.ec_regulated_entity_str,
+                                                           node_names=new_donations_df['regulated_donee'].unique(),
+                                                           node_type=node_factory.ec_regulated_entity_str
+                                                           )
 
     regulated_donees_df = pd.DataFrame(all_regulated_donees)
 
-    all_donors, new_donors = get_nodes(table='donors',
-                                       node_names=new_donations_df['donor'].unique())
+    all_donors, new_donors = get_nodes(table=node_factory.ec_donor_str,
+                                       node_names=new_donations_df['donor'].unique(),
+                                       node_type=node_factory.ec_donor_str
+                                       )
 
     donors_df = pd.DataFrame(all_donors)
 
@@ -389,10 +431,10 @@ def electoral_commission_find_diffs():
 # have emailed the ICIJ to let them know and ask what's up. While I wait for this problem to be fixed, going to have
 # to just remove the dupe nodes from intermediaries.
 def offshore_leaks_remove_dupes_from_intermediaries(node_dfs):
-    officer_ids = node_dfs['officers']['node_id'].tolist()
-    intermediaries_df = node_dfs['intermediaries']
+    officer_ids = node_dfs[node_factory.ol_officer_str]['node_id'].tolist()
+    intermediaries_df = node_dfs[node_factory.ol_intermediary_str]
 
-    node_dfs['intermediaries'] = intermediaries_df[~intermediaries_df['node_id'].isin(officer_ids)]
+    node_dfs[node_factory.ol_intermediary_str] = intermediaries_df[~intermediaries_df['node_id'].isin(officer_ids)]
 
     return node_dfs
 
@@ -438,7 +480,7 @@ def offshore_leaks_process_raw_csvs():
             print('dupes!')
 
         node_df.rename(columns={'node_id': 'ol_db_id'}, inplace=True)
-        node_df = node_df.assign(node_id=[uuid.uuid1().int for i in range(len(node_df))])
+        node_df['node_id'] = node_df.apply(lambda row: generate_node_id(row.ol_db_id, node_type), axis=1)
         processed_node_dfs[node_type] = node_df
 
         if ids_df is None:
@@ -495,17 +537,17 @@ def full_populate_sequence():
     def each_module(module_specific_processing, module_db, module_schemas):
         print('processing csvs')
         node_dfs, relationship_dfs = module_specific_processing()
-        # print('populating Postgres')
-        # populate_postgres_db(db_name=module_db, dfs={**node_dfs, **relationship_dfs})
+        print('populating Postgres')
+        populate_postgres_db(db_name=module_db, dfs={**node_dfs, **relationship_dfs})
         data = [{'schema': module_schemas[node_type], 'df': df} for node_type, df in node_dfs.items()]
         print('populating Typesense')
         populate_typesense(data)
 
     print('Populating DataBases')
-    print('Electoral Commission')
+    print('Electoral Commission Donations')
     each_module(electoral_commission_process_raw_donations_csv, config.roi_database, electoral_commission_schemas)
-    print('Offshore Leaks')
-    each_module(offshore_leaks_process_raw_csvs, config.ol_database, offshore_leaks_schemas)
+    # print('Offshore Leaks')
+    # each_module(offshore_leaks_process_raw_csvs, config.ol_database, offshore_leaks_schemas)
 
 
 def update_sequence():

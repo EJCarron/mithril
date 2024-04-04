@@ -1,8 +1,12 @@
 from src.scripts.data_wrangling import populate_db
+from src.scripts.typesense_client import db_report, drop_collection
 
 
+# db_report()
 
 populate_db.full_populate_sequence()
+
+
 # update_sequence()
 
 

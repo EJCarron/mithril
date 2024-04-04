@@ -6,6 +6,9 @@ import sys
 from src.scripts.cross_referencing import cross_referencing
 from src.scripts.companies_house import companies_house_api
 from src.scripts.timeline import timeline as tl
+from src.objects.graph_objects.nodes import node_factory
+from src.scripts.uk_electoral_commission import electoral_commission_api
+from src.scripts.OffshoreLeaks import offshore_leaks_api
 
 
 def setconfig(**kwargs):
@@ -28,7 +31,22 @@ def make_network_from_dict(network_dict):
 
 
 def expand_network(network, target_node_ids=None):
-    network.expand_network(target_node_ids)
+    network.expand(target_node_ids)
+    return network
+
+
+def make_same_as_connections(network, node_ids):
+    if len(node_ids) <= 1:
+        return None
+
+    first_node_id = node_ids[0]
+
+    for i in range(len(node_ids)):
+        if i == 0:
+            continue
+
+        network.create_same_as_relationship(first_node_id=first_node_id, second_node_id=node_ids[i])
+
     return network
 
 
@@ -42,6 +60,19 @@ def companies_house_search(query, page_number, search_type=None):
     else:
         print(f'invalid search type {search_type}')
         return None
+
+
+def node_search(query, page_number, search_type):
+    if search_type == 'Companies House All' or search_type in \
+            [node_factory.ch_company_str, node_factory.ch_officer_str]:
+        search_type = None if search_type == 'Companies House All' else search_type
+        return companies_house_api.companies_house_search(query, page_number, search_type)
+    elif search_type == 'Electoral Commission All' or search_type in node_factory.ec_nodes_dict.keys():
+        search_type = None if search_type == 'Electoral Commission All' else search_type
+        return electoral_commission_api.search_typesense(query, page_number, search_type)
+    elif search_type == 'Offshore Leaks All' or search_type in node_factory.ol_keys_dict.keys():
+        search_type = None if search_type == 'Offshore Leaks All' else search_type
+        return offshore_leaks_api.search_typesense(query, page_number, search_type)
 
 
 def export_timeline(network, export_path):
@@ -62,7 +93,7 @@ def createnetwork(core_nodes,
 
     if expand > 0:
         for i in range(expand):
-            network.expand_network()
+            network.expand()
 
     if save_csvs_path != "":
         try:
@@ -161,4 +192,9 @@ def add_electoral_commission_donation_connections_to_network(network, matches):
     network = cross_referencing.add_electoral_commission_donation_connections_to_network(matches=matches,
                                                                                          network=network)
 
+    return network
+
+
+def add_nodes_to_network(network, add_nodes):
+    network.add_nodes(add_nodes)
     return network

@@ -11,7 +11,7 @@ class OffshoreLeaksAddress(OffshoreLeaksNode):
 
         start_label = start_label.replace(' ', '_')
 
-        return start_label + str(self.db_node_id)
+        return start_label + str(self.node_id)
 
     @property
     def events(self):

@@ -1,5 +1,5 @@
-from .nodes import node_factory
-from .relationships import relationship_factory
+from src.objects.graph_objects.nodes import node_factory
+from src.objects.graph_objects.relationships import relationship_factory
 from src.scripts.OffshoreLeaks import offshore_leaks_api
 from src.scripts.uk_electoral_commission import electoral_commission_api
 
@@ -20,7 +20,7 @@ def expand_node(node, existing_nodes):
 
 def expand_ec_node(node, existing_nodes):
     print('expanding ElectoralCommission node ' + node.unique_label)
-    raw_relationships = electoral_commission_api.get_donations(node_id=node.node_id)
+    raw_relationships = electoral_commission_api.get_relationships(node_id=node.node_id)
 
     new_node_relationship_tuples = []
 
@@ -62,7 +62,7 @@ def expand_ec_node(node, existing_nodes):
 
 def expand_ol_node(node, existing_nodes):
     print('expanding OffshoreLeaks node ' + node.unique_label)
-    raw_relationships = offshore_leaks_api.get_relationships(db_node_id=node.db_node_id)
+    raw_relationships = offshore_leaks_api.get_relationships(node_id=node.db_node_id)
 
     new_node_relationship_tuples = []
 
@@ -70,7 +70,7 @@ def expand_ol_node(node, existing_nodes):
         parent_node = None
         child_node = None
 
-        if raw_relationship['node_id_start'] == node.db_node_id:
+        if raw_relationship[''] == node.db_node_id:
             related_node_db_id = raw_relationship['node_id_end']
             parent_node = node
         else:
@@ -142,7 +142,7 @@ def expand_ch_officer(ch_officer, existing_nodes):
     for item in ch_officer.items:
         company_number = item['appointed_to']['company_number']
         if company_number not in existing_nodes.keys():
-            ch_company = node_factory.ch_company.init_from_company_number(company_number)
+            ch_company = node_factory.ch_company.init_from_companies_house_id(company_number)
 
         else:
             ch_company = existing_nodes[company_number]

@@ -1,21 +1,27 @@
 from ..node import Node
 from .....scripts.OffshoreLeaks import offshore_leaks_api
-
+from src.objects.graph_objects.nodes import node_factory
 
 class OffshoreLeaksNode(Node):
 
     def __init__(self, **kwargs):
         super(OffshoreLeaksNode, self).__init__()
-        self.node_id = 'ol_' + str(kwargs['db_node_id'])
         self.__dict__.update(kwargs)
+        self.init_token = self.node_id
+
+
+    def render_unique_label(self):
+        start_label = self.name.replace(' ', '_')
+
+        return start_label + str(self.node_id)
 
     @classmethod
     def batch_init(cls, node_ids):
         raw_results = offshore_leaks_api.get_nodes(node_ids)
 
-        ol_types = {ol_type.__name__: ol_type for ol_type in cls.__subclasses__()}
+        ol_types = {ol_type.__name__: ol_type for ol_type in node_factory.ol_nodes_dict.values()}
 
-        nodes = [ol_types[raw_result['node_type']](**raw_result) for raw_result in raw_results]
+        nodes = [ol_types[raw_result['obj_type']](**raw_result) for raw_result in raw_results]
 
         return nodes
 

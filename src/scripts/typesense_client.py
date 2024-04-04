@@ -74,7 +74,7 @@ def jsonline_stringify(list_of_objects):
 def split_df_to_size(df):
     df_size = df.memory_usage(index=True).sum()
 
-    num_splits = maths.ceil(df_size / 30000000)
+    num_splits = maths.ceil(df_size / 1000000)
 
     split_dfs = np.array_split(df, num_splits)
 
@@ -88,6 +88,22 @@ def import_df(client, df, collection):
         df.fillna('NULL', inplace=True)
         client.collections[collection].documents.import_(
             jsonline_stringify(df.to_dict('records')).encode('utf-8'))
+
+
+def paged_query(query, query_by, page, collection):
+    client = make_typesense_client()
+
+    params = {'q': query,
+              'query_by': query_by,
+              'page': page
+              }
+
+    response = search_typesense_db(client=client, search=params, collection=collection)
+
+    if response is not None:
+        return response['hits']
+    else:
+        return None
 
 
 def find_matches(search_dicts):
@@ -123,3 +139,18 @@ def find_matches(search_dicts):
         result_counter += 1
 
     return results
+
+
+def clear_typesense_cluster(you_are_sure=False):
+    if you_are_sure:
+        client = make_typesense_client()
+
+        collections = client.collections.retrieve()
+
+        [client.collections[collection['name']].delete() for collection in collections]
+
+
+def drop_collection(collection):
+    client = make_typesense_client()
+
+    client.collections[collection].delete()
